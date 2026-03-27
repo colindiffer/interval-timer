@@ -1,0 +1,9 @@
+node_modules/
+.env
+android/app/build/
+ios/build/
+.gradle/
+*.keystore
+.DS_Store
+*.mp3
+*.wav
