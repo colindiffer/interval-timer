@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" width="1024" height="1024">
+  <!-- Background: dark navy rounded square -->
+  <rect width="100" height="100" rx="22" fill="#0A1628"/>
+
+  <!-- Ring track (dimmed) -->
+  <circle cx="50" cy="50" r="35" stroke="#1E3A5F" stroke-width="6" fill="none"/>
+
+  <!-- Timer arc: 300° clockwise from 12 o'clock, ends at ~10 o'clock -->
+  <!-- Start: (50,15) = top.  End: (19.7,32.5) = upper-left -->
+  <path d="M 50 15 A 35 35 0 1 1 19.7 32.5"
+        stroke="#3B82F6" stroke-width="6" fill="none"
+        stroke-linecap="round"/>
+
+  <!-- Arc end dot (simulates a timer hand) -->
+  <circle cx="19.7" cy="32.5" r="4.5" fill="#60A5FA"/>
+
+  <!-- Lightning bolt (white, centered) -->
+  <path d="M 55 28 L 44 52 L 51 52 L 45 72 L 56 48 L 49 48 Z" fill="white"/>
+</svg>

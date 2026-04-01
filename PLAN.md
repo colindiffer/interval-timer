@@ -1,150 +1,113 @@
-# Interval Timer — Build Plan
+# Interval Timer - Current Plan
 
 ## Product definition
 
-> A zero-friction interval timer that works reliably in the background and starts workouts instantly.
+Phone-first interval timer for running and interval work.
 
-**Single question the app answers:**
-"What am I running right now, and how long until the next change?"
+The app should answer three things at a glance:
+- what phase am I on
+- how long is left
+- what happens next
 
-**Positioning:** Between generic timers (too clunky) and full training apps (too much friction)
+## Locked decisions
+- Phone only
+- Local-first storage today
+- Keep the app simple
+- Limit presets to 20
+- Ignore monetisation until the product is solid
+- Keep placeholder ad surfaces only
+- Never use video ads
+- Firebase can be added underneath the app, but should not complicate the core timer UX
 
-**What kills the app:**
-- Timer stops when screen turns off
-- Audio fails mid-workout
-- Too many steps to start
-- Setup required every time
+## What is already built
 
----
+### Core timer
+- Timer engine in TypeScript
+- Warmup, work, rest, cooldown phases
+- Pause, resume, stop
+- Skip to next step
+- Ready state on open, no auto-start
+- History logging
 
-## Monetisation (locked in)
+### Navigation
+- `Library`
+- `Create`
+- `History`
+- `Settings`
+- `Active Workout` as full-screen modal
+- `Workout Builder` as modal
 
-- **Free:** Full timer functionality, 5 saved workouts, banner ads outside active workout
-- **£2.99 one-time unlock:** Unlimited saved workouts, no ads
-- No subscription. Ever.
-- Free saved workouts are never blocked for editing or reuse — only creation of new ones beyond limit
+### Workout management
+- Create workout
+- Edit workout
+- Duplicate workout into editor
+- Save workout to library
+- Favourite workouts
+- Up to 20 presets
+- Advanced custom intervals
+- Advanced templates
+- Skip last rest toggle
 
----
+### Active workout UX
+- Large circular timer
+- Tap circle to start or resume
+- Small deliberate pause button
+- Hold-to-exit button
+- No swipe back
+- Next phase preview
+- Favourite toggle
 
-## V1 — Core, Run, Polish
+### Settings
+- Theme mode
+- Audio mode selector
+- Final countdown
+- Sound theme choice
+- Per-phase colour choice
 
-### Phase 0 — Technical spikes (build before any UI)
+### Firebase foundation
+- `@react-native-firebase/app`
+- `@react-native-firebase/analytics`
+- `@react-native-firebase/auth`
+- `@react-native-firebase/firestore`
+- Native config files in place for iOS and Android
+- Shared Firebase wrapper module in `src/lib/firebase.ts`
+- Expo plugin config working with `@react-native-firebase/app`
 
-These must work before a single screen is built.
+### Storage and persistence
+- AsyncStorage remains the active source of truth
+- Workouts, history, favourites, settings, and last workout all persist locally
+- No cloud sync path is active yet
 
-| Spike | Pass condition |
-|---|---|
-| Timer engine | Accurate tick. Phase transitions. Rep counting. No drift over 30 min. |
-| Android foreground service | Timer runs with screen off for 60 min. No kill. |
-| iOS background (silent audio) | Timer runs with screen off for 60 min. No kill. |
-| Audio cues | Fires correctly over headphones. Ducks music, does not pause it. |
-| App lifecycle | State recovers correctly after backgrounding and return. |
+## Current backlog
 
----
+### High priority
+- Decide whether Firebase is for auth only, sync only, or both
+- Decide the source-of-truth migration plan before wiring Firestore into existing local flows
+- Build the first real Firebase-backed flow or remove unused backend surface until needed
+- Make `voice cues` real or remove the toggle
+- Add explicit dev-build notes to the project flow once Firebase runtime usage begins
+- Review all 20 presets and tighten the timings where needed
+- Improve settings polish so old controls remain obvious
 
-### Phase 1 — Core timer
+### Medium priority
+- Define analytics event naming before instrumenting screens
+- Add sign-in / account model only if cross-device sync is truly needed
+- Let users preview a full phase colour theme, not just per-phase colour dots
+- Improve history grouping and detail
+- Add a better last-workout shortcut on create or library
+- Tune the active timer layout further for light mode
 
-| Task | Notes |
-|---|---|
-| Project scaffold | RN 0.84, navigation setup |
-| Timer engine module | Pure TS, no React dependency |
-| Android foreground service | `TimerService.kt`, persistent notification |
-| iOS AVAudioSession | Silent audio, background execution |
-| Basic active workout screen | Phase, countdown, rep — functional not polished |
-| Audio cue system | Pre-recorded files, correct routing |
-| Haptic feedback | Phase change vibration |
+### Later
+- Native background execution
+- Foreground service / iOS background handling
+- Cloud sync between devices
+- Watch support
+- Real monetisation
 
----
-
-### Phase 2 — Workout management
-
-| Task | Notes |
-|---|---|
-| Workout builder | Work / rest / repeats / optional warmup + cooldown |
-| Save workout | Name + store locally |
-| Workout library | List, edit, duplicate, delete |
-| Pre-built templates | 6 templates — see below |
-| Minimal history | Workout ID + timestamp + completed flag |
-| Favourites (up to 3) | Ordered, shown on home screen |
-| Quick start — last workout | Secondary action on home screen |
-
-**Pre-built templates:**
-```
-1. 1 min on / 1 min off × 10     — beginner intervals
-2. 2 min on / 1 min off × 8      — standard HIIT
-3. 3 min on / 90s off × 6        — 1km rep equivalent
-4. 20 min steady                  — tempo run
-5. Pyramid: 1/2/3/2/1 min hard   — variety
-6. Couch to 5K style: walk/run   — beginner
-```
-
----
-
-### Phase 3 — Polish + Ads
-
-| Task | Notes |
-|---|---|
-| Active workout screen — final design | Glanceable, large, full colour phase coding |
-| Lock screen / notification state | Android: foreground notif. iOS: clean re-entry. |
-| AdMob banner — home screen only | Never on active workout screen |
-| AdMob banner — library screen | Bottom, above tab bar |
-| Settings screen | Sound, vibration, voice cues, dark mode |
-| App icon + splash screen | |
-| Onboarding | First launch: 2 screens max. Start with a template. |
-
----
-
-## V2 — Watch + Unlock
-
-| Task | Notes |
-|---|---|
-| £2.99 IAP unlock | `react-native-iap`, one-time purchase |
-| Unlimited workouts | Paywall on creation beyond 5, not on using existing |
-| Apple Watch companion | Swift, WCSession, shows phase/countdown/rep |
-| Wear OS companion | Kotlin, Wearable Data Layer |
-| Live Activities (iOS) | Lock screen + Dynamic Island display |
-| Audio packs / voice options | Alternative voice cues (optional) |
-
----
-
-## V3 — Platform expansion
-
-| Task | Notes |
-|---|---|
-| Standalone Apple Watch app | Runs without phone |
-| Workout sharing | Export/import workout definitions |
-| Wearable standalone (Wear OS) | |
-
----
-
-## Screen inventory
-
-```
-Home
-Active Workout (the product)
-Workout Builder
-Workout Library
-History (minimal)
-Settings
-```
-
----
-
-## Retention model
-
-This is a habit app, not a transactional app.
-
-Users return: multiple times per week, before workouts.
-
-Retention drivers:
-- Saved workouts → no rebuild required
-- Favourites on home screen → one tap to start
-- Minimal history → sense of repetition and progress
-- Quick start → zero friction re-entry
-
-The loop:
-```
-Open → Tap favourite → Start → Follow cues → Finish → Repeat
-```
-
-Everything in the app supports this loop or gets cut.
+## Working rules
+- Active workout screen must stay distraction-free
+- Never show ads during a workout
+- Never force a multi-step start flow for common actions
+- Presets should be editable before use
+- Favourites should always surface somewhere visible
+- Backend work must not make the timer dependent on network availability

@@ -1,188 +1,160 @@
 # Architecture
 
-## Core principle
+## Current architecture
 
-The timer engine must be completely decoupled from the UI.
-If the timer lives inside a React component, it will break when:
-- Screen turns off
-- App is backgrounded
-- User switches to Spotify
-- OS decides to reclaim memory
+The app is currently an Expo / React Native app with a local timer engine, local storage as the active source of truth, and Firebase native setup installed but not yet used in live product flows.
 
-This is why most interval timer apps are broken.
+```text
+UI screens and components
+  -> subscribe to timer state
+  -> send commands to timer engine
 
----
+Timer engine
+  -> builds workout phase sequence
+  -> manages idle / running / paused / complete
+  -> exposes tick, phase change, and complete callbacks
 
-## Layer structure
+Local storage
+  -> workouts
+  -> history
+  -> favourites
+  -> settings
+  -> last workout
 
-```
-┌─────────────────────────────────────┐
-│           React Native UI            │  ← reads state, sends commands
-├─────────────────────────────────────┤
-│          Timer Engine Module         │  ← pure logic, no UI dependency
-│                                      │
-│  - current phase (work/rest/warmup)  │
-│  - countdown                         │
-│  - current rep                       │
-│  - total reps                        │
-│  - workout state (running/paused)    │
-├─────────────────────────────────────┤
-│      Platform Execution Layer        │
-│                                      │
-│  Android: Foreground Service         │  ← keeps timer alive, shows notif
-│  iOS: Background Task + AVSession    │  ← silent audio trick to stay alive
-├─────────────────────────────────────┤
-│         Audio Engine                 │  ← ducks music, routes to headphones
-├─────────────────────────────────────┤
-│     Watch Bridge (v2 — not v1)      │  ← sends state to Wear OS / watchOS
-└─────────────────────────────────────┘
+Firebase layer
+  -> app bootstrap configured
+  -> auth / firestore / analytics modules available
+  -> not yet part of active screen flows
+
+Audio + haptics
+  -> local cue playback
+  -> optional haptics on transitions
 ```
 
----
+## Timer engine
 
-## Timer Engine
+Current engine goals:
+- no React dependency
+- deterministic phase sequence
+- simple command surface
+- safe to load without auto-start
 
-Single source of truth. Plain TypeScript module — no React, no hooks.
+Current supported workout structure:
+- warmup
+- repeated work / rest
+- optional cooldown
+- optional custom per-set intervals
+- optional skip last rest
 
-```typescript
-// TimerEngine.ts
-interface WorkoutPhase {
-  type: 'warmup' | 'work' | 'rest' | 'cooldown'
-  duration: number  // seconds
-}
+Current commands:
+- `load(workout)`
+- `start()`
+- `pause()`
+- `resume()`
+- `stop()`
+- `skipToNextStep()`
+- `getState()`
+- `onTick(...)`
+- `onPhaseChange(...)`
+- `onComplete(...)`
 
-interface TimerState {
-  phase: WorkoutPhase
-  countdown: number       // seconds remaining in current phase
-  currentRep: number
-  totalReps: number
-  status: 'idle' | 'running' | 'paused' | 'complete'
-  elapsedTotal: number
-}
+## Storage model
 
-// Engine exposes:
-// start(workout) → void
-// pause() → void
-// resume() → void
-// stop() → void
-// onTick(callback: (state: TimerState) => void) → void
-// onPhaseChange(callback: (phase, nextPhase) => void) → void
-```
+AsyncStorage keys currently cover:
+- workouts
+- history
+- favourites
+- settings
+- last workout
 
-UI subscribes to state via callbacks. Engine doesn't know the UI exists.
+Settings currently include:
+- audio mode state
+- final countdown
+- vibration
+- dark mode setting
+- sound theme
+- per-phase colours
 
----
+Current storage rule:
+- AsyncStorage is authoritative today
+- Firebase is not yet a second source of truth
+- Any sync work should preserve offline-first behaviour and avoid double-write drift
 
-## Android: Foreground Service
+## UI structure
 
-**Why:** Android OS kills background processes. Without a foreground service, the timer stops the moment the screen turns off.
+Main tabs:
+- Library
+- Create
+- History
+- Settings
 
-**Implementation:**
-- Native Kotlin `TimerService extends Service`
-- Runs as foreground with persistent notification
-- Notification shows: phase / countdown / rep count
-- Timer engine runs inside the service — not in JS thread
-- JS bridge for start/pause/stop commands and state updates
+Modal flow:
+- Active Workout
+- Workout Builder
 
-**Notification format:**
-```
-[App Icon] Interval Timer
-RUN — 0:42 remaining
-Rep 3 of 10
-```
+Ad surfaces currently in use:
+- Inline ad cards in Create
+- Inline ad cards in Library
+- Inline ad cards in History
+- Banner ad in Settings
+- No ad surface in Active Workout
 
-**Native module:** `TimerModule.kt` — same pattern as BlockerModule in SiteBlocker
+## Audio
 
----
+Current audio is local file playback through `expo-av`.
 
-## iOS: Staying Alive
+Current sound-theme support:
+- confirmation
+- bell
+- message pop
+- interface start
+- positive
 
-iOS is more restrictive. Options:
+Current limitations:
+- no spoken voice implementation yet
+- no separate dedicated sound set for countdown vs transition
+- no background-audio reliability work yet
 
-1. **Silent audio track** — play a silent audio file continuously. AVAudioSession keeps the app alive. Widely used by timer apps. Slightly hacky but works.
-2. **Background Task** — `BGTaskScheduler` — limited, not reliable for long workouts
-3. **Live Activities** (iOS 16+) — shows on lock screen and Dynamic Island. Best UX but requires entitlement.
+## Firebase
 
-**v1 approach:** Silent audio track + AVAudioSession
-**v2 addition:** Live Activities for lock screen display
+Current Firebase setup:
+- `@react-native-firebase/app`, `analytics`, `auth`, and `firestore` are installed
+- `GoogleService-Info.plist` and `google-services.json` are present
+- Expo config uses the `@react-native-firebase/app` plugin
+- `src/lib/firebase.ts` exports the Firebase modules for future use
 
----
+Current Firebase limitations:
+- no auth screens
+- no Firestore persistence or sync path
+- no analytics event layer
+- no user-facing backend error handling yet
+- runtime use of these modules will require a dev build / native build path, not a plain Expo Go-only assumption
 
-## Audio Engine
+## Theme system
 
-### Requirements
-- Play cues through headphones if connected, speaker otherwise
-- Duck (reduce volume of) background music during cues — do NOT pause it
-- Cues must fire even when phone is silent (use AVAudioSession.playback category)
-- Cues: "Starting in 3... 2... 1", "Run", "Rest", "Last rep", "Done"
+The app uses a theme context for:
+- light mode
+- dark mode
+- system mode
 
-### Android
-- `AudioManager` for routing detection
-- `AudioFocusRequest` with `AUDIOFOCUS_GAIN_TRANSIENT_MAY_DUCK` — this ducks music without pausing
-- Pre-loaded audio files (.mp3) — no TTS in v1 (sounds robotic)
+There is also a separate saved phase-colour model used by the timer UI.
 
-### iOS
-- `AVAudioSession` category: `.playback` with `.mixWithOthers` + `.duckOthers` options
-- Pre-loaded audio files
+## What is not built yet
 
-### Audio cue files needed
-```
-countdown-3.mp3   "3"
-countdown-2.mp3   "2"
-countdown-1.mp3   "1"
-phase-work.mp3    "Go"
-phase-rest.mp3    "Rest"
-phase-last.mp3    "Last one"
-complete.mp3      "Done"
-```
-Short, clear, unambiguous. Male or female voice — decide before recording.
+These were part of the earlier plan but are not current implementation:
+- Android foreground service
+- iOS background execution strategy
+- lock screen / notification timer state
+- watch bridge
+- purchase flow
 
----
+## Near-term architecture direction
 
-## Local Storage
+Keep the current separation:
+- UI stays dumb
+- timer engine owns timing logic
+- local storage owns current persistence
+- Firebase stays additive until a real sync or auth requirement is defined
+- settings own display and cue preferences
 
-`@react-native-async-storage/async-storage` v2.2.0
-
-```
-workouts[]          — saved workout definitions
-history[]           — { workoutId, timestamp, completed }
-favourites[]        — ordered list of up to 3 workout IDs
-settings            — { sound, vibration, voice, darkMode, unlocked }
-lastWorkoutId       — ID of most recently started workout
-```
-
----
-
-## Watch Bridge (v2 — plan now, build later)
-
-Keep timer state serialisable from day one:
-
-```typescript
-// This shape gets sent to the watch
-interface WatchState {
-  phase: 'work' | 'rest' | 'warmup' | 'cooldown'
-  countdown: number
-  currentRep: number
-  totalReps: number
-  status: 'running' | 'paused' | 'complete'
-}
-```
-
-**Android → Wear OS:** `Wearable.getDataClient()` via Kotlin native module
-**iOS → watchOS:** `WCSession` via Swift native module
-
-Both communicate the WatchState above. Watch UI is built natively (Compose / SwiftUI).
-
----
-
-## Spike order (build this before any UI)
-
-```
-1. Timer engine — accurate tick, phase transitions, rep counting
-2. Android foreground service — timer survives screen off
-3. iOS silent audio — timer survives screen off
-4. Audio cues — duck music, correct routing, fire on phase change
-5. App lifecycle — state survives backgrounding and return
-```
-
-Only after all 5 pass testing: build the UI.
+If background execution is added later, the timer engine contract should stay the same and only the execution layer should change.

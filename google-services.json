@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "703339875432",
+    "project_id": "interval-timer-40571",
+    "storage_bucket": "interval-timer-40571.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:703339875432:android:334565995f91b1c716bfdd",
+        "android_client_info": {
+          "package_name": "com.differapps.intervaltimer"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCTvcTflI4ulyK_edhNfncp8WLtGTqtq2A"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

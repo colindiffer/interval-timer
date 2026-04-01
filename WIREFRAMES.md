@@ -1,381 +1,174 @@
-# Interval Timer — Wireframes (V1)
+# Interval Timer - Current Screen Notes
+
+These are not final visual specs. They are current product notes for the app as built.
 
 ## Navigation
 
-```
-Bottom Tab Bar
-├── Home
-├── Library
-├── History (minimal)
-└── Settings
-```
-
-Active Workout is a full-screen modal — no tab bar visible during workout.
-
----
-
-## Screen 1: Home
-
-```
-┌─────────────────────────────────┐
-│  Good morning, Colin         ⚙  │  ← settings shortcut
-│                                 │
-│  FAVOURITES                     │
-│  ┌─────────────────────────┐    │
-│  │ ▶  Track Intervals      │    │  ← tap to start immediately
-│  │    3 min / 90s × 6      │    │
-│  └─────────────────────────┘    │
-│  ┌─────────────────────────┐    │
-│  │ ▶  HIIT                 │    │
-│  │    1 min / 1 min × 10   │    │
-│  └─────────────────────────┘    │
-│  ┌─────────────────────────┐    │
-│  │ ▶  Tempo Run            │    │
-│  │    20 min steady        │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  ─────────────────────────────  │
-│                                 │
-│  LAST WORKOUT                   │
-│  ┌─────────────────────────┐    │
-│  │ ▶  Track Intervals      │    │
-│  │    Yesterday · Complete │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  + Create new workout           │
-│                                 │
-│ ┌─────────────────────────────┐ │
-│ │          AD BANNER          │ │  ← banner only, never during workout
-│ └─────────────────────────────┘ │
-│  [Home]  [Library] [History] [⚙]│
-└─────────────────────────────────┘
+```text
+Bottom tabs
+- Library
+- Create
+- History
+- Settings
 ```
 
-**Rules:**
-- Favourites are ordered by user — drag to reorder
-- Tapping a favourite or last workout → goes straight to Active Workout (no confirmation)
-- Up to 3 favourites
-- "+ Create new workout" → opens Workout Builder
-- No ad during workout — ever
+`Active Workout` opens full screen above the tabs.
 
----
+## Create
 
-## Screen 2: Active Workout (the product)
+Purpose:
+- quick creation flow
+- preset browsing
+- obvious entry into workout builder
 
-**Phase: WORK**
-```
-┌─────────────────────────────────┐
-│  ✕                           ⏸ │  ← stop / pause — small, top corners
-│                                 │
-│                                 │
-│            RUN                  │  ← large, centred, phase label
-│                                 │
-│          2:47                   │  ← countdown — dominant element
-│                                 │
-│        ━━━━━━━━━━━━━━           │  ← phase progress bar
-│                                 │
-│         Rep 3 / 10              │  ← current rep
-│                                 │
-│        Next: REST               │  ← next phase preview
-│        1 min 0 sec              │
-│                                 │
-└─────────────────────────────────┘
-```
-Background: bold green
+Current content:
+- large `New workout` card at the top
+- presets list below
+- inline ad placeholders inside the preset list
 
-**Phase: REST**
-```
-┌─────────────────────────────────┐
-│  ✕                           ⏸ │
-│                                 │
-│                                 │
-│            REST                 │
-│                                 │
-│          0:52                   │
-│                                 │
-│        ━━━━━━━━░░░░░░░          │
-│                                 │
-│         Rep 3 / 10              │
-│                                 │
-│        Next: RUN                │
-│        3 min 0 sec              │
-│                                 │
-└─────────────────────────────────┘
-```
-Background: deep blue
+Rules:
+- tapping a preset opens the workout editor
+- presets do not start immediately
+- saving from preset creates a normal user workout
 
-**Phase: WARMUP**
-Background: amber
+## Library
 
-**Phase: COOLDOWN**
-Background: purple
+Purpose:
+- saved workouts
+- favourites
+- workout actions
 
-**Phase: COMPLETE**
-```
-┌─────────────────────────────────┐
-│                                 │
-│                                 │
-│           DONE ✓                │
-│                                 │
-│     Track Intervals             │
-│     10 reps complete            │
-│     Total time: 45:00           │
-│                                 │
-│    [ Start again ]              │
-│                                 │
-│    [ Back to home ]             │
-│                                 │
-└─────────────────────────────────┘
-```
-Background: dark, calm
+Current content:
+- favourites section
+- my workouts section
+- compact `...` menu per workout
+- inline ad placeholders between workout cards
 
-**Rules:**
-- Full screen — no tab bar, no distractions
-- Colour coding is the primary phase indicator (visible at a glance)
-- Text is secondary confirmation
-- ✕ asks "Stop workout?" with confirmation
-- ⏸ pauses immediately, shows resume button
-- No ads. Ever. On this screen.
-- Audio cue on every phase change
-- Haptic on every phase change
-- Countdown beeps at 3, 2, 1 before phase change
+Menu actions:
+- edit
+- duplicate
+- favourite / unfavourite
+- delete
 
----
+Rules:
+- menu must dismiss by tapping outside
+- duplicate opens the editor
+- favourites must appear in their own visible section
 
-## Screen 3: Workout Builder
+## Active Workout
 
-```
-┌─────────────────────────────────┐
-│  ← New Workout              Save│
-│                                 │
-│  Name                           │
-│  ┌─────────────────────────┐    │
-│  │ Track Intervals         │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  WORK INTERVAL                  │
-│  ┌─────────────────────────┐    │
-│  │  3 min    00 sec        │    │  ← number picker
-│  └─────────────────────────┘    │
-│                                 │
-│  REST INTERVAL                  │
-│  ┌─────────────────────────┐    │
-│  │  1 min    30 sec        │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  REPEATS                        │
-│  ┌────────┐                     │
-│  │   6    │  ← –  ●●●●●●  + →  │
-│  └────────┘                     │
-│                                 │
-│  WARMUP (optional)              │
-│  ┌─────────────────────────┐    │
-│  │  Off                  > │    │  ← tap to set duration
-│  └─────────────────────────┘    │
-│                                 │
-│  COOLDOWN (optional)            │
-│  ┌─────────────────────────┐    │
-│  │  Off                  > │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  ┌─────────────────────────┐    │
-│  │       PREVIEW           │    │
-│  │  Warmup: —              │    │
-│  │  3:00 work / 1:30 rest  │    │
-│  │  × 6 reps               │    │
-│  │  Total: ~27 min         │    │
-│  └─────────────────────────┘    │
-│                                 │
-│     [ Start now ]               │  ← save + start immediately
-│                                 │
-│  [Home]  [Library] [History] [⚙]│
-└─────────────────────────────────┘
-```
+Purpose:
+- the core product
 
-**Rules:**
-- Name defaults to "Workout 1", "Workout 2" etc — user can rename
-- Preview updates live as user adjusts values
-- "Start now" saves and starts immediately — no extra step
-- Warmup/cooldown off by default
-- Time picker: scroll wheels for minutes and seconds
+Current behaviour:
+- screen opens ready, not running
+- large circular countdown
+- ring progress around edge
+- tap circle to start or resume
+- pause is a separate top control
+- skip button moves to next step
+- hold exit button required to leave
+- no swipe back
 
----
+Visible information:
+- workout name
+- favourite toggle
+- current phase
+- countdown
+- rep progress
+- next phase and duration
 
-## Screen 4: Workout Library
+Rules:
+- no ads
+- no accidental dismissal
+- colours must remain readable in light and dark mode
 
-```
-┌─────────────────────────────────┐
-│  My Workouts              + New │
-│                                 │
-│  ┌─────────────────────────┐    │
-│  │ ★ Track Intervals       │    │  ← ★ = in favourites
-│  │   3 min / 90s × 6       │    │
-│  │   Last run: yesterday   ▶ ⋯ │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  ┌─────────────────────────┐    │
-│  │ ★ HIIT                  │    │
-│  │   1 min / 1 min × 10    │    │
-│  │   Last run: 3 days ago  ▶ ⋯ │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  ┌─────────────────────────┐    │
-│  │   Tempo Run             │    │
-│  │   20 min steady         │    │
-│  │   Last run: last week   ▶ ⋯ │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  TEMPLATES                      │
-│  ┌─────────────────────────┐    │
-│  │   1 min on / 1 min off  │    │
-│  │   × 10 · Beginner       ▶ ⋯ │    │
-│  └─────────────────────────┘    │
-│  ┌─────────────────────────┐    │
-│  │   Pyramid Intervals     │    │
-│  │   1/2/3/2/1 min hard    ▶ ⋯ │    │
-│  └─────────────────────────┘    │
-│                                 │
-│ ┌─────────────────────────────┐ │
-│ │          AD BANNER          │ │
-│ └─────────────────────────────┘ │
-│  [Home]  [Library] [History] [⚙]│
-└─────────────────────────────────┘
-```
+## Workout Builder
 
-**Rules:**
-- ▶ starts the workout immediately
-- ⋯ opens action sheet: Edit / Duplicate / Add to favourites / Delete
-- ★ shown if in favourites (tap to toggle)
-- User workouts above templates
-- 5 max user workouts in free tier — "+ New" shows upgrade prompt if limit reached
-- Templates are always available, cannot be deleted, can be duplicated to edit
+Purpose:
+- create and edit workouts without friction
 
----
+Current sections:
+- workout name
+- work duration
+- rest duration
+- reps
+- warmup
+- cooldown
+- skip last rest
+- preview
+- advanced section
 
-## Screen 5: History
+Advanced section:
+- custom variations
+- per-set work and rest values
+- add/remove sets
+- quick templates:
+  - descending rests
+  - pyramid
+  - negative split
 
-```
-┌─────────────────────────────────┐
-│  History                        │
-│                                 │
-│  THIS WEEK                      │
-│  ┌─────────────────────────┐    │
-│  │ ✓ Track Intervals       │    │
-│  │   Today · 27 min        │    │
-│  └─────────────────────────┘    │
-│  ┌─────────────────────────┐    │
-│  │ ✓ HIIT                  │    │
-│  │   Yesterday · 22 min    │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  LAST WEEK                      │
-│  ┌─────────────────────────┐    │
-│  │ ✓ Track Intervals       │    │
-│  │   Mon · 27 min          │    │
-│  └─────────────────────────┘    │
-│  ┌─────────────────────────┐    │
-│  │ ✗ Tempo Run             │    │  ← ✗ = stopped early
-│  │   Sat · Stopped at 12m  │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  [Home]  [Library] [History] [⚙]│
-└─────────────────────────────────┘
-```
+Rules:
+- seconds move in 5-second steps
+- advanced stays in the same editor, not a separate screen
 
-**Rules:**
-- No stats, no charts, no streaks — just the log
-- ✓ = completed, ✗ = stopped early
-- Grouped by week
-- Tapping a row → "Run this workout again?" shortcut
-- Last 30 entries stored, then rolling deletion
-- No ad on history screen — it's too small
+## History
 
----
+Purpose:
+- simple log only
 
-## Screen 6: Settings
+Current behaviour:
+- show recent completed and incomplete sessions
+- completed shows `Completed`
+- incomplete shows `Stopped early`
+- quick-start `New workout` card at the top
+- inline ad placeholders appear inside longer lists
 
-```
-┌─────────────────────────────────┐
-│  Settings                       │
-│                                 │
-│  AUDIO                          │
-│  ┌─────────────────────────┐    │
-│  │ Sound cues      [◉ ON]  │    │
-│  ├─────────────────────────┤    │
-│  │ Voice cues      [◉ ON]  │    │
-│  ├─────────────────────────┤    │
-│  │ Countdown beeps [◉ ON]  │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  FEEDBACK                       │
-│  ┌─────────────────────────┐    │
-│  │ Vibration       [◉ ON]  │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  DISPLAY                        │
-│  ┌─────────────────────────┐    │
-│  │ Dark mode       [◉ ON]  │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  APP                            │
-│  ┌─────────────────────────┐    │
-│  │ Remove ads — £2.99    > │    │  ← IAP, one-time
-│  ├─────────────────────────┤    │
-│  │ Restore purchase      > │    │
-│  ├─────────────────────────┤    │
-│  │ Rate the app          > │    │
-│  ├─────────────────────────┤    │
-│  │ Send feedback         > │    │
-│  ├─────────────────────────┤    │
-│  │ Privacy policy        > │    │
-│  ├─────────────────────────┤    │
-│  │ Version 1.0.0           │    │
-│  └─────────────────────────┘    │
-│                                 │
-│  [Home]  [Library] [History] [⚙]│
-└─────────────────────────────────┘
-```
+Rules:
+- no red cross icon
+- no charts or stats for now
 
----
+## Settings
 
-## Ad placement summary
+Purpose:
+- keep familiar direct controls
+- add new controls without hiding old ones
 
-| Screen | Ad |
-|---|---|
-| Home | Banner — bottom, above tab bar |
-| Active Workout | None — ever |
-| Workout Builder | None |
-| Library | Banner — bottom, above tab bar |
-| History | None |
-| Settings | None |
+Current sections:
+- Theme
+- Sound
+- Colors
+- Miscellaneous
 
----
+Current controls:
+- light / dark / system
+- sound / voice / none mode
+- final count
+- sound theme selector with try button
+- per-phase colour selector
+- miscellaneous links and version row
+- banner ad placeholder pinned below content
 
-## Foreground notification (Android — active workout)
+Rules:
+- old settings remain obvious
+- colour controls must change the real timer
+- sound choices must use real files, not synthetic placeholders
 
-```
-┌─────────────────────────────────────┐
-│ 🏃 Interval Timer                   │
-│ RUN — 2:47 remaining · Rep 3 of 10  │
-│ ▐▐ Pause                            │
-└─────────────────────────────────────┘
-```
+## Backend surface
 
-Tapping notification → returns to Active Workout screen.
+Current user-facing backend state:
+- there are no auth or account screens yet
+- there is no cloud-sync UI yet
+- Firebase currently changes setup, not screen flow
 
----
+## Ad placement
 
-## Apple Watch (v2 — plan only)
+Allowed:
+- Create inline placeholders
+- Library inline placeholders
+- History inline placeholders
+- Settings banner placeholder
 
-```
-┌───────────────┐
-│     RUN       │  ← large, colour-coded
-│    2:47       │  ← countdown
-│   Rep 3/10   │
-│               │
-│  Next: REST   │
-└───────────────┘
-```
-
-Crown/button: pause/resume
-Haptic: on every phase change
+Not allowed:
+- Active workout
+- video ads
