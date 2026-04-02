@@ -22,11 +22,17 @@ workflows:
       - name: Install CocoaPods
         script: cd ios && pod install
 
+      - name: Find workspace
+        script: find ios -name "*.xcworkspace" -maxdepth 1
+
       - name: Build IPA
         script: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "Building workspace: $WORKSPACE scheme: $SCHEME"
           xcode-project build-ipa \
-            --workspace "ios/IntervalTimer.xcworkspace" \
-            --scheme "IntervalTimer"
+            --workspace "$WORKSPACE" \
+            --scheme "$SCHEME"
 
     artifacts:
       - build/ios/ipa/*.ipa
