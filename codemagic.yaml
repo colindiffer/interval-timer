@@ -6,35 +6,15 @@ workflows:
     integrations:
       app_store_connect: Codemagic Podcast
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.differapps.intervaltimer
       node: latest
-      xcode: 16.2
-      cocoapods: default
+      vars:
+        EXPO_TOKEN: $EXPO_TOKEN
     scripts:
-      - name: Install npm dependencies
-        script: npm install
+      - name: Install EAS CLI
+        script: npm install -g eas-cli
 
-      - name: Expo prebuild
-        script: npx expo prebuild --platform ios --no-install
+      - name: Build with EAS (handles signing automatically)
+        script: eas build --platform ios --profile production --non-interactive
 
-      - name: Install CocoaPods
-        script: cd ios && pod install
-
-      - name: Build IPA
-        script: |
-          xcode-project build-ipa \
-            --workspace "ios/IntervalTimer.xcworkspace" \
-            --scheme "IntervalTimer"
-
-    artifacts:
-      - build/ios/ipa/*.ipa
-      - /tmp/xcodebuild_logs/*.log
-      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
-
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        expire_build_submitted_for_review: true
+      - name: Submit to TestFlight
+        script: eas submit --platform ios --latest --non-interactive
