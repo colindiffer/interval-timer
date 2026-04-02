@@ -55,7 +55,8 @@ workflows:
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \
             --scheme "$SCHEME" \
-            --export-options-plist /Users/builder/export_options.plist
+            --export-options-plist /Users/builder/export_options.plist \
+            --clean
 
     artifacts:
       - build/ios/ipa/*.ipa
