@@ -22,8 +22,27 @@ workflows:
       - name: Install CocoaPods
         script: cd ios && pod install
 
-      - name: Find workspace
-        script: find ios -name "*.xcworkspace" -maxdepth 1
+      - name: Create export options plist
+        script: |
+          cat > /Users/builder/export_options.plist << 'PLIST'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+              <key>method</key>
+              <string>app-store</string>
+              <key>provisioningProfiles</key>
+              <dict>
+                  <key>com.differapps.intervaltimer</key>
+                  <string>Interval Timer App Store</string>
+              </dict>
+              <key>signingCertificate</key>
+              <string>Apple Distribution</string>
+              <key>teamID</key>
+              <string>25X2WSWQG6</string>
+          </dict>
+          </plist>
+          PLIST
 
       - name: Build IPA
         script: |
@@ -32,7 +51,8 @@ workflows:
           echo "Building workspace: $WORKSPACE scheme: $SCHEME"
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \
-            --scheme "$SCHEME"
+            --scheme "$SCHEME" \
+            --export-options-plist /Users/builder/export_options.plist
 
     artifacts:
       - build/ios/ipa/*.ipa
