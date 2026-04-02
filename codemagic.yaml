@@ -22,6 +22,9 @@ workflows:
       - name: Install CocoaPods
         script: cd ios && pod install
 
+      - name: Apply code signing profiles
+        script: xcode-project use-profiles
+
       - name: Create export options plist
         script: |
           cat > /Users/builder/export_options.plist << 'PLIST'
