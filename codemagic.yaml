@@ -14,7 +14,7 @@ workflows:
       cocoapods: default
     scripts:
       - name: Install npm dependencies
-        script: npm install
+        script: npm install --ignore-scripts
 
       - name: Expo prebuild
         script: npx expo prebuild --platform ios --no-install
