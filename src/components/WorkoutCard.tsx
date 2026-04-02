@@ -65,6 +65,7 @@ interface Props {
   workout:       Workout
   isFavourite?:  boolean
   lastRunLabel?: string
+  iconVariant?:  'play' | 'plus'
   onPress:       () => void
   onMorePress?:  () => void
   onFavouritePress?: () => void
@@ -74,6 +75,7 @@ export default function WorkoutCard({
   workout,
   isFavourite,
   lastRunLabel,
+  iconVariant = 'play',
   onPress,
   onMorePress,
   onFavouritePress,
@@ -85,9 +87,13 @@ export default function WorkoutCard({
     <TouchableOpacity style={styles.card} onPress={onPress} activeOpacity={0.7}>
       <View style={styles.left}>
         <View style={styles.playIcon}>
-          <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
-            <Path d="M4.5 3.5L12 8L4.5 12.5V3.5Z" fill={C.accentText} />
-          </Svg>
+          {iconVariant === 'plus' ? (
+            <Text style={[styles.plusIcon, { color: C.accentText }]}>+</Text>
+          ) : (
+            <Svg width={16} height={16} viewBox="0 0 16 16" fill="none">
+              <Path d="M4.5 3.5L12 8L4.5 12.5V3.5Z" fill={C.accentText} />
+            </Svg>
+          )}
         </View>
         <View style={styles.info}>
           <Text style={styles.name} numberOfLines={1}>{workout.name}</Text>
@@ -145,6 +151,11 @@ function createStyles(C: ReturnType<typeof useColors>) {
       backgroundColor: C.accent,
       alignItems:      'center',
       justifyContent:  'center',
+    },
+    plusIcon: {
+      fontSize:   22,
+      fontWeight: FontWeight.bold,
+      lineHeight: 24,
     },
     info: {
       flex: 1,

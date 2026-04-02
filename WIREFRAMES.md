@@ -67,8 +67,9 @@ Current behaviour:
 - tap circle to start or resume
 - pause is a separate top control
 - skip button moves to next step
-- hold exit button required to leave
+- exit is a single tap button
 - no swipe back
+- when Android backgrounds a running workout, control moves to the persistent notification instead of PiP
 
 Visible information:
 - workout name
@@ -82,6 +83,24 @@ Rules:
 - no ads
 - no accidental dismissal
 - colours must remain readable in light and dark mode
+
+## Android background notification
+
+Purpose:
+- keep the workout alive when Android backgrounds the app
+- preserve quick control without floating PiP
+
+Current behaviour:
+- running workout hands off to a persistent foreground-service notification
+- notification shows current phase and time remaining
+- notification actions include `Pause` / `Resume` and `Skip`
+- tapping the notification reopens the app
+- countdown beeps, phase cues, and voice cues continue while backgrounded on Android
+
+Rules:
+- notification must stay visible while a workout is active in background
+- actions must work without reopening the app
+- no PiP overlay on the home screen
 
 ## Workout Builder
 

@@ -12,7 +12,29 @@ import { RootStackParamList, TabParamList } from '../navigation/types'
 import { HistoryEntry } from '../types'
 import { getHistory } from '../data/storage'
 import InlineAdCard from '../components/InlineAdCard'
-import { Spacing, FontSize, FontWeight, useColors } from '../theme'
+import { Spacing, FontSize, FontWeight, Radius, useColors } from '../theme'
+
+interface Stats {
+  totalSessions: number
+  totalMinutes:  number
+  streak:        number
+}
+
+function calcStats(entries: HistoryEntry[]): Stats {
+  const completed = entries.filter(e => e.completed)
+  const totalMinutes = Math.round(
+    completed.reduce((sum, e) => sum + e.durationSeconds, 0) / 60
+  )
+  const daySet = new Set(completed.map(e => new Date(e.timestamp).toDateString()))
+  let streak = 0
+  const cursor = new Date()
+  cursor.setHours(0, 0, 0, 0)
+  while (daySet.has(cursor.toDateString())) {
+    streak++
+    cursor.setDate(cursor.getDate() - 1)
+  }
+  return { totalSessions: completed.length, totalMinutes, streak }
+}
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'History'>,
@@ -70,13 +92,34 @@ export default function HistoryScreen({ navigation }: Props) {
   const styles = createStyles(C)
   const [groups, setGroups] = useState<GroupedHistory[]>([])
   const [empty, setEmpty]   = useState(false)
+  const [stats, setStats]   = useState<Stats>({ totalSessions: 0, totalMinutes: 0, streak: 0 })
 
   useFocusEffect(useCallback(() => {
     getHistory().then(h => {
       setEmpty(h.length === 0)
       setGroups(groupByWeek(h))
+      setStats(calcStats(h))
     })
   }, []))
+
+  const StatsBar = (
+    <View style={styles.statsRow}>
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{stats.totalSessions}</Text>
+        <Text style={styles.statLabel}>Workouts</Text>
+      </View>
+      <View style={styles.statDivider} />
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{stats.totalMinutes}</Text>
+        <Text style={styles.statLabel}>Minutes</Text>
+      </View>
+      <View style={styles.statDivider} />
+      <View style={styles.statCard}>
+        <Text style={styles.statValue}>{stats.streak}</Text>
+        <Text style={styles.statLabel}>Day streak</Text>
+      </View>
+    </View>
+  )
 
   const QuickStart = (
     <TouchableOpacity
@@ -102,6 +145,7 @@ export default function HistoryScreen({ navigation }: Props) {
           <View style={styles.header}>
             <Text style={styles.title}>History</Text>
           </View>
+          {StatsBar}
           {QuickStart}
           <View style={styles.emptyState}>
             <Text style={styles.emptyText}>No workouts yet.</Text>
@@ -119,6 +163,7 @@ export default function HistoryScreen({ navigation }: Props) {
           <Text style={styles.title}>History</Text>
         </View>
 
+        {StatsBar}
         {QuickStart}
 
         {groups.map(group => (
@@ -275,6 +320,37 @@ function createStyles(C: ReturnType<typeof useColors>) {
       color:      C.textSecondary,
       textAlign:  'center',
       lineHeight: 22,
+    },
+    statsRow: {
+      flexDirection:   'row',
+      backgroundColor: C.bgCard,
+      borderRadius:    18,
+      borderWidth:     1,
+      borderColor:     C.border,
+      marginBottom:    Spacing.lg,
+      paddingVertical: Spacing.md,
+    },
+    statCard: {
+      flex:           1,
+      alignItems:     'center',
+      justifyContent: 'center',
+      gap:            2,
+    },
+    statValue: {
+      fontSize:    28,
+      fontWeight:  FontWeight.heavy,
+      color:       C.textPrimary,
+      fontVariant: ['tabular-nums'],
+    },
+    statLabel: {
+      fontSize:  FontSize.xs,
+      color:     C.textSecondary,
+      fontWeight: FontWeight.medium,
+    },
+    statDivider: {
+      width:           1,
+      backgroundColor: C.separator,
+      marginVertical:  Spacing.xs,
     },
   })
 }

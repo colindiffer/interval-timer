@@ -82,6 +82,7 @@ export default function CreateScreen({ navigation }: Props) {
                 workout={workout}
                 isFavourite={favouriteIds.includes(workout.id)}
                 lastRunLabel={lastRunLabels[workout.id]}
+                iconVariant='plus'
                 onPress={() => navigation.navigate('WorkoutBuilder', { duplicateFromId: workout.id })}
                 onFavouritePress={() => handleFavourite(workout.id)}
               />

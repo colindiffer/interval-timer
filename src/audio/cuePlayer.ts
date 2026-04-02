@@ -16,24 +16,25 @@ const SOURCES: Record<SoundThemeId, number> = {
   whistle: require('../../assets/sounds/whistle.mp3'),
 }
 
+const BASE_AUDIO_MODE = {
+  playsInSilentModeIOS:    true,
+  staysActiveInBackground: true,
+  shouldDuckAndroid:       false,
+} as const
+
+const DUCK_AUDIO_MODE = {
+  ...BASE_AUDIO_MODE,
+  shouldDuckAndroid: true,
+} as const
+
 class CuePlayer {
   private sounds = new Map<SoundThemeId, Audio.Sound>()
-  private audioModeReady = false
-
-  private async ensureAudioMode(): Promise<void> {
-    if (this.audioModeReady) return
-    await Audio.setAudioModeAsync({
-      playsInSilentModeIOS: true,
-      shouldDuckAndroid: true,
-    })
-    this.audioModeReady = true
-  }
 
   private async load(theme: SoundThemeId): Promise<Audio.Sound> {
     const existing = this.sounds.get(theme)
     if (existing) return existing
 
-    await this.ensureAudioMode()
+    await Audio.setAudioModeAsync(BASE_AUDIO_MODE)
     const { sound } = await Audio.Sound.createAsync(SOURCES[theme], {
       shouldPlay: false,
       progressUpdateIntervalMillis: 0,
@@ -45,7 +46,32 @@ class CuePlayer {
   async play(theme: SoundThemeId): Promise<void> {
     try {
       const sound = await this.load(theme)
-      await sound.replayAsync()
+
+      // Duck only for the duration of the cue, then restore immediately after.
+      await Audio.setAudioModeAsync(DUCK_AUDIO_MODE)
+
+      await new Promise<void>((resolve) => {
+        const fallback = setTimeout(() => {
+          sound.setOnPlaybackStatusUpdate(null)
+          resolve()
+        }, 3000)
+
+        sound.setOnPlaybackStatusUpdate((status) => {
+          if (status.isLoaded && status.didJustFinish) {
+            clearTimeout(fallback)
+            sound.setOnPlaybackStatusUpdate(null)
+            resolve()
+          }
+        })
+
+        sound.replayAsync().catch(() => {
+          clearTimeout(fallback)
+          sound.setOnPlaybackStatusUpdate(null)
+          resolve()
+        })
+      })
+
+      await Audio.setAudioModeAsync(BASE_AUDIO_MODE)
     } catch {
       // Ignore audio failures and keep the timer moving.
     }

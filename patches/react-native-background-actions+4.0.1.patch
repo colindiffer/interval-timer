@@ -1,0 +1,61 @@
+diff --git a/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java b/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
+index 1234567..abcdefg 100644
+--- a/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
++++ b/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
+@@ -23,6 +23,9 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+
+     public static final int SERVICE_NOTIFICATION_ID = 92901;
+     private static final String CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL";
++    private static final String ACTION_PAUSE = "com.differapps.intervaltimer.BACKGROUND_TIMER_PAUSE";
++    private static final String ACTION_RESUME = "com.differapps.intervaltimer.BACKGROUND_TIMER_RESUME";
++    private static final String ACTION_SKIP = "com.differapps.intervaltimer.BACKGROUND_TIMER_SKIP";
+
+     @SuppressLint("UnspecifiedImmutableFlag")
+     @NonNull
+@@ -60,13 +63,24 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+         } else {
+             contentIntent = PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
+         }
+-        final NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
++        final boolean isPaused = taskDesc.startsWith("Paused");
++        final NotificationCompat.Builder builder = new NotificationCompat.Builder(context, CHANNEL_ID)
+                 .setContentTitle(taskTitle)
+                 .setContentText(taskDesc)
+                 .setSmallIcon(iconInt)
+                 .setContentIntent(contentIntent)
+                 .setOngoing(true)
+                 .setOnlyAlertOnce(true)
+                 .setPriority(NotificationCompat.PRIORITY_LOW)
+                 .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+                 .setCategory(NotificationCompat.CATEGORY_SERVICE)
+-                .setColor(color);
++                .setColor(color)
++                .addAction(
++                        isPaused ? android.R.drawable.ic_media_play : android.R.drawable.ic_media_pause,
++                        isPaused ? "Resume" : "Pause",
++                        buildActionIntent(context, isPaused ? ACTION_RESUME : ACTION_PAUSE, 1)
++                )
++                .addAction(
++                        android.R.drawable.ic_media_next,
++                        "Skip",
++                        buildActionIntent(context, ACTION_SKIP, 2)
++                );
+
+         final Bundle progressBarBundle = bgOptions.getProgressBar();
+@@ -75,6 +89,17 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+         return builder.build();
+     }
+
++    @NonNull
++    private static PendingIntent buildActionIntent(@NonNull Context context, @NonNull String action, int requestCode) {
++        final Intent intent = new Intent(action)
++                .setClassName(context, context.getPackageName() + ".BackgroundTimerActionReceiver");
++        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
++            return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
++        }
++        return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT);
++    }
++
+     @Override
+     protected @Nullable
+     HeadlessJsTaskConfig getTaskConfig(Intent intent) {

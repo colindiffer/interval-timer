@@ -38,7 +38,7 @@ A phone-first interval timer focused on fast setup, clear mid-workout controls, 
 - Big circular countdown timer with progress around the edge
 - Tap circle to start or resume
 - Separate pause button
-- Hold-to-exit button
+- Single-tap exit button
 - Skip to next step
 - Favourite toggle on timer and workout cards
 - Quick-start `New workout` card on key tabs
@@ -50,6 +50,9 @@ A phone-first interval timer focused on fast setup, clear mid-workout controls, 
 - Light, dark, and system display mode
 - Per-phase colour selection in settings
 - Multiple selectable sound themes
+- Android background timer via persistent notification
+- Android notification actions for `Pause` / `Resume` and `Skip`
+- Android background countdown / phase audio cues
 
 ## Current data and backend state
 - AsyncStorage is still the live source of truth for workouts, history, favourites, settings, and last workout
@@ -76,8 +79,10 @@ A phone-first interval timer focused on fast setup, clear mid-workout controls, 
 - No video ads
 
 ## Current constraints
-- Timer engine is solid, but background-survival native work is not built yet
-- Audio uses local cue files; real spoken voice behaviour is not built yet
+- Android background execution is implemented through a foreground service notification
+- iOS background execution is still not implemented
+- Android notification actions currently rely on a local patch inside `node_modules/react-native-background-actions`
+- Audio uses local cue files and `expo-speech`; background cue behaviour is currently Android-focused
 - Firebase is installed but not yet driving product logic
 - Native Firebase modules will need a dev build / native run once those code paths are used at runtime
 - Watch support is not in scope yet

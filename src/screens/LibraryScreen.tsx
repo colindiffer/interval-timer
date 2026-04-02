@@ -15,9 +15,11 @@ import {
   getWorkouts, getUserWorkouts, getFavourites, toggleFavourite,
   deleteWorkout, getHistory,
 } from '../data/storage'
+import { deleteWorkoutFromCloud } from '../data/syncService'
 import WorkoutCard from '../components/WorkoutCard'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, useColors } from '../theme'
+import { useAuth } from '../context/AuthContext'
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Library'>,
@@ -27,6 +29,7 @@ type Props = CompositeScreenProps<
 export default function LibraryScreen({ navigation }: Props) {
   const C = useColors()
   const styles = createStyles(C)
+  const { user } = useAuth()
   const [userWorkouts, setUserWorkouts] = useState<Workout[]>([])
   const [favouriteIds, setFavouriteIds] = useState<string[]>([])
   const [lastRunLabels, setLastRunLabels] = useState<Record<string, string>>({})
@@ -103,6 +106,7 @@ export default function LibraryScreen({ navigation }: Props) {
               style: 'destructive',
               onPress: async () => {
                 await deleteWorkout(workout.id)
+                if (user) deleteWorkoutFromCloud(user.uid, workout.id).catch(console.error)
                 await loadData()
               },
             },
@@ -118,7 +122,7 @@ export default function LibraryScreen({ navigation }: Props) {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Library</Text>
+<Text style={styles.title}>Library</Text>
         </View>
 
         <TouchableOpacity
@@ -264,6 +268,20 @@ function createStyles(C: ReturnType<typeof useColors>) {
     header: {
       paddingTop:    Spacing.lg,
       paddingBottom: Spacing.md,
+      gap:           6,
+    },
+    brand: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      gap:           8,
+      marginBottom:  2,
+    },
+    brandName: {
+      fontSize:      FontSize.xs,
+      fontWeight:    FontWeight.semibold,
+      color:         C.textTertiary,
+      letterSpacing: 1.2,
+      textTransform: 'uppercase',
     },
     title: {
       fontSize:   FontSize.xxl,

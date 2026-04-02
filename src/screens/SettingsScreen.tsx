@@ -1,7 +1,9 @@
-import React, { useCallback, useState } from 'react'
+import React, { useCallback, useRef, useState } from 'react'
 import {
   View, Text, StyleSheet, ScrollView, Switch, TouchableOpacity,
+  TextInput, Alert, ActivityIndicator, Linking,
 } from 'react-native'
+import * as StoreReview from 'expo-store-review'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 
@@ -19,6 +21,9 @@ import {
 } from '../theme'
 import { cuePlayer } from '../audio/cuePlayer'
 import AdBanner from '../components/AdBanner'
+import { useAuth } from '../context/AuthContext'
+import Logo from '../components/Logo'
+import { pushToCloud, pullFromCloud } from '../data/syncService'
 
 const APP_VERSION = '1.0.0'
 const FINAL_COUNT_OPTIONS = [0, 3, 5]
@@ -40,7 +45,59 @@ export default function SettingsScreen() {
   const C = useColors()
   const styles = createStyles(C)
   const { darkModeSetting, setDarkMode } = useTheme()
-  const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
+  const { user, signInGoogle, signInApple, signInEmail, createAccountEmail, resetPassword, signOut, appleAvailable } = useAuth()
+  const [signingIn, setSigningIn]   = useState(false)
+  const [authMode, setAuthMode]     = useState<'login' | 'register'>('login')
+  const [email, setEmail]           = useState('')
+  const [password, setPassword]     = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [settings, setSettings]     = useState<AppSettings>(DEFAULT_SETTINGS)
+  type BtnState = 'idle' | 'busy' | 'done' | 'error'
+  const [syncState,    setSyncState]    = useState<BtnState>('idle')
+  const [restoreState, setRestoreState] = useState<BtnState>('idle')
+  const syncTimer    = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const restoreTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  const handleSync = useCallback(async () => {
+    if (!user || syncState === 'busy') return
+    setSyncState('busy')
+    try {
+      await pushToCloud(user.uid)
+      setSyncState('done')
+    } catch {
+      setSyncState('error')
+    } finally {
+      if (syncTimer.current) clearTimeout(syncTimer.current)
+      syncTimer.current = setTimeout(() => setSyncState('idle'), 3000)
+    }
+  }, [user, syncState])
+
+  const handleRestore = useCallback(async () => {
+    if (!user || restoreState === 'busy') return
+    Alert.alert(
+      'Restore from cloud?',
+      'This will replace all your local workouts with the ones saved in your account.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: async () => {
+            setRestoreState('busy')
+            try {
+              await pullFromCloud(user.uid)
+              setRestoreState('done')
+            } catch {
+              setRestoreState('error')
+            } finally {
+              if (restoreTimer.current) clearTimeout(restoreTimer.current)
+              restoreTimer.current = setTimeout(() => setRestoreState('idle'), 3000)
+            }
+          },
+        },
+      ],
+    )
+  }, [user, restoreState])
 
   useFocusEffect(useCallback(() => {
     getSettings().then(setSettings)
@@ -70,6 +127,230 @@ export default function SettingsScreen() {
           <Text style={styles.title}>Settings</Text>
           <Text style={styles.subtitle}>Keep the familiar controls. Add the extra ones around them.</Text>
         </View>
+
+        {user ? (
+          <View style={styles.accountCard}>
+            {/* Name + email */}
+            <View style={styles.accountRow}>
+              <View style={styles.accountInfo}>
+                <Text style={styles.accountName} numberOfLines={1}>
+                  {user.displayName ?? user.email ?? 'Signed in'}
+                </Text>
+                {user.email ? (
+                  <Text style={styles.accountEmail} numberOfLines={1}>{user.email}</Text>
+                ) : null}
+              </View>
+              <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.7}>
+                <Text style={styles.signOutText}>Sign out</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Divider */}
+            <View style={styles.accountDivider} />
+
+            {/* Sync row */}
+            <View style={styles.syncRow}>
+              <View style={styles.syncInfo}>
+                <Text style={styles.syncTitle}>Sync to cloud</Text>
+                <Text style={styles.syncSub}>
+                  {syncState === 'busy'  ? 'Uploading…'
+                  : syncState === 'done'  ? 'Cloud updated'
+                  : syncState === 'error' ? 'Failed — try again'
+                  : 'Overwrite cloud with your local workouts'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.syncBtn, syncState === 'busy' && { opacity: 0.5 }]}
+                onPress={handleSync}
+                disabled={syncState === 'busy'}
+                activeOpacity={0.7}
+              >
+                {syncState === 'busy' ? (
+                  <ActivityIndicator size="small" color={C.accent} />
+                ) : (
+                  <Text style={[
+                    styles.syncBtnText,
+                    syncState === 'done'  && { color: '#22C55E' },
+                    syncState === 'error' && { color: C.danger },
+                  ]}>
+                    {syncState === 'done' ? 'Done' : syncState === 'error' ? 'Retry' : 'Sync'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.accountDivider} />
+
+            {/* Restore row */}
+            <View style={styles.syncRow}>
+              <View style={styles.syncInfo}>
+                <Text style={styles.syncTitle}>Restore from cloud</Text>
+                <Text style={styles.syncSub}>
+                  {restoreState === 'busy'  ? 'Restoring…'
+                  : restoreState === 'done'  ? 'Workouts restored'
+                  : restoreState === 'error' ? 'Failed — try again'
+                  : 'Replace local workouts with cloud copy'}
+                </Text>
+              </View>
+              <TouchableOpacity
+                style={[styles.syncBtn, restoreState === 'busy' && { opacity: 0.5 }]}
+                onPress={handleRestore}
+                disabled={restoreState === 'busy'}
+                activeOpacity={0.7}
+              >
+                {restoreState === 'busy' ? (
+                  <ActivityIndicator size="small" color={C.accent} />
+                ) : (
+                  <Text style={[
+                    styles.syncBtnText,
+                    restoreState === 'done'  && { color: '#22C55E' },
+                    restoreState === 'error' && { color: C.danger },
+                  ]}>
+                    {restoreState === 'done' ? 'Done' : restoreState === 'error' ? 'Retry' : 'Restore'}
+                  </Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.signInBlock}>
+            {/* Header */}
+            <View style={styles.signInLogoRow}>
+              <Logo size={36} />
+              <View style={styles.signInTextBlock}>
+                <Text style={styles.signInHeading}>Save your workouts</Text>
+                <Text style={styles.signInSub}>Sync across devices — free forever</Text>
+              </View>
+            </View>
+
+            {/* Tab toggle */}
+            <View style={styles.authTabRow}>
+              <TouchableOpacity
+                style={[styles.authTab, authMode === 'login' && styles.authTabActive]}
+                onPress={() => { setAuthMode('login'); setEmailError('') }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.authTabText, authMode === 'login' && styles.authTabTextActive]}>Log in</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.authTab, authMode === 'register' && styles.authTabActive]}
+                onPress={() => { setAuthMode('register'); setEmailError('') }}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.authTabText, authMode === 'register' && styles.authTabTextActive]}>Create account</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Email + password */}
+            <TextInput
+              style={[styles.authInput, emailError ? styles.authInputError : null]}
+              placeholder="Email"
+              placeholderTextColor={C.textTertiary}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoCorrect={false}
+              value={email}
+              onChangeText={t => { setEmail(t); setEmailError('') }}
+            />
+            <TextInput
+              style={styles.authInput}
+              placeholder="Password"
+              placeholderTextColor={C.textTertiary}
+              secureTextEntry
+              autoCapitalize="none"
+              value={password}
+              onChangeText={setPassword}
+            />
+            {emailError ? <Text style={styles.authErrorText}>{emailError}</Text> : null}
+
+            <TouchableOpacity
+              style={[styles.emailSubmitBtn, signingIn && { opacity: 0.6 }]}
+              disabled={signingIn}
+              activeOpacity={0.85}
+              onPress={async () => {
+                if (!email.trim() || !password) {
+                  setEmailError('Please enter your email and password.')
+                  return
+                }
+                setSigningIn(true)
+                setEmailError('')
+                try {
+                  if (authMode === 'login') {
+                    await signInEmail(email.trim(), password)
+                  } else {
+                    await createAccountEmail(email.trim(), password)
+                  }
+                } catch (e: any) {
+                  const code = e?.code ?? ''
+                  if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
+                    setEmailError('Incorrect email or password.')
+                  } else if (code === 'auth/email-already-in-use') {
+                    setEmailError('An account with this email already exists.')
+                  } else if (code === 'auth/weak-password') {
+                    setEmailError('Password must be at least 6 characters.')
+                  } else if (code === 'auth/invalid-email') {
+                    setEmailError('Please enter a valid email address.')
+                  } else {
+                    setEmailError(e?.message ?? 'Something went wrong. Please try again.')
+                  }
+                } finally {
+                  setSigningIn(false)
+                }
+              }}
+            >
+              <Text style={styles.emailSubmitText}>
+                {authMode === 'login' ? 'Log in' : 'Create account'}
+              </Text>
+            </TouchableOpacity>
+
+            {authMode === 'login' ? (
+              <TouchableOpacity
+                onPress={async () => {
+                  if (!email.trim()) {
+                    setEmailError('Enter your email above to reset your password.')
+                    return
+                  }
+                  try {
+                    await resetPassword(email.trim())
+                    Alert.alert('Email sent', `Check ${email.trim()} for a password reset link.`)
+                  } catch {
+                    setEmailError('Could not send reset email. Check the address and try again.')
+                  }
+                }}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.forgotText}>Forgot password?</Text>
+              </TouchableOpacity>
+            ) : null}
+
+            {/* Divider */}
+            <View style={styles.orRow}>
+              <View style={styles.orLine} />
+              <Text style={styles.orText}>or</Text>
+              <View style={styles.orLine} />
+            </View>
+
+            {/* Social */}
+            <TouchableOpacity
+              style={[styles.googleBtn, signingIn && { opacity: 0.6 }]}
+              onPress={async () => { setSigningIn(true); try { await signInGoogle() } catch {} finally { setSigningIn(false) } }}
+              activeOpacity={0.85}
+              disabled={signingIn}
+            >
+              <Text style={styles.googleBtnText}>Continue with Google</Text>
+            </TouchableOpacity>
+            {appleAvailable ? (
+              <TouchableOpacity
+                style={[styles.appleBtn, signingIn && { opacity: 0.6 }]}
+                onPress={async () => { setSigningIn(true); try { await signInApple() } catch {} finally { setSigningIn(false) } }}
+                activeOpacity={0.85}
+                disabled={signingIn}
+              >
+                <Text style={styles.appleBtnText}>Continue with Apple</Text>
+              </TouchableOpacity>
+            ) : null}
+          </View>
+        )}
 
         <SectionHeader title="Theme" subtitle="Choose the phone appearance first." />
         <View style={styles.panel}>
@@ -154,11 +435,32 @@ export default function SettingsScreen() {
         <View style={styles.panel}>
           <LinkRow label="Banner ads" note="Placeholder only" />
           <Divider />
-          <LinkRow label="Rate the app" />
+          <LinkRow
+            label="Rate the app"
+            onPress={async () => {
+              if (await StoreReview.hasAction()) {
+                await StoreReview.requestReview()
+              } else {
+                await Linking.openURL(
+                  'https://play.google.com/store/apps/details?id=com.differapps.intervaltimer'
+                )
+              }
+            }}
+          />
           <Divider />
-          <LinkRow label="Send feedback" />
+          <LinkRow
+            label="Send feedback"
+            onPress={() => Linking.openURL(
+              'mailto:support@differapps.com?subject=Interval%20Timer%20Feedback'
+            )}
+          />
           <Divider />
-          <LinkRow label="Privacy policy" />
+          <LinkRow
+              label="Privacy policy"
+              onPress={() => Linking.openURL(
+                'https://colindiffer.github.io/privacy_policy_interval_timer.html'
+              )}
+            />
           <Divider />
           <InfoRow label="Version" value={APP_VERSION} />
         </View>
@@ -192,12 +494,12 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   )
 }
 
-function LinkRow({ label, note }: { label: string; note?: string }) {
+function LinkRow({ label, note, onPress }: { label: string; note?: string; onPress?: () => void }) {
   const C = useColors()
   const styles = createStyles(C)
 
   return (
-    <TouchableOpacity style={styles.row} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.row} activeOpacity={0.7} onPress={onPress}>
       <Text style={styles.rowLabel}>{label}</Text>
       <View style={styles.linkRight}>
         {note ? <Text style={styles.rowNote}>{note}</Text> : null}
@@ -633,6 +935,221 @@ function createStyles(C: ReturnType<typeof useColors>) {
       fontWeight: FontWeight.heavy,
       color: C.textPrimary,
       fontVariant: ['tabular-nums'],
+    },
+    accountCard: {
+      backgroundColor:   C.bgCard,
+      borderRadius:      18,
+      borderWidth:       1,
+      borderColor:       C.border,
+      marginBottom:      Spacing.md,
+      overflow:          'hidden',
+    },
+    accountRow: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      justifyContent:    'space-between',
+      paddingVertical:   Spacing.md,
+      paddingHorizontal: Spacing.md,
+    },
+    accountDivider: {
+      height:          1,
+      backgroundColor: C.separator,
+    },
+    syncRow: {
+      flexDirection:     'row',
+      alignItems:        'center',
+      justifyContent:    'space-between',
+      paddingVertical:   Spacing.md,
+      paddingHorizontal: Spacing.md,
+      gap:               Spacing.md,
+    },
+    syncInfo: {
+      flex: 1,
+      gap:  2,
+    },
+    syncTitle: {
+      fontSize:   FontSize.md,
+      fontWeight: FontWeight.semibold,
+      color:      C.textPrimary,
+    },
+    syncSub: {
+      fontSize:   FontSize.sm,
+      color:      C.textSecondary,
+      lineHeight: 18,
+    },
+    syncBtn: {
+      minWidth:          72,
+      paddingVertical:   Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      borderRadius:      Radius.pill,
+      borderWidth:       1,
+      borderColor:       C.border,
+      alignItems:        'center',
+      justifyContent:    'center',
+    },
+    syncBtnText: {
+      fontSize:   FontSize.sm,
+      fontWeight: FontWeight.semibold,
+      color:      C.accent,
+    },
+    accountInfo: {
+      flex: 1,
+      gap:  2,
+    },
+    accountName: {
+      fontSize:   FontSize.md,
+      fontWeight: FontWeight.semibold,
+      color:      C.textPrimary,
+    },
+    accountEmail: {
+      fontSize: FontSize.sm,
+      color:    C.textSecondary,
+    },
+    signOutBtn: {
+      paddingVertical:   Spacing.sm,
+      paddingHorizontal: Spacing.md,
+      borderRadius:      Radius.pill,
+      borderWidth:       1,
+      borderColor:       C.border,
+    },
+    signOutText: {
+      fontSize:   FontSize.sm,
+      fontWeight: FontWeight.medium,
+      color:      C.textSecondary,
+    },
+    signInBlock: {
+      backgroundColor:   C.bgCard,
+      borderRadius:      18,
+      padding:           Spacing.md,
+      marginBottom:      Spacing.md,
+      gap:               Spacing.sm,
+      borderWidth:       1,
+      borderColor:       C.border,
+    },
+    signInLogoRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      gap:           Spacing.sm,
+      marginBottom:  Spacing.xs,
+    },
+    signInTextBlock: {
+      flex: 1,
+      gap:  2,
+    },
+    signInHeading: {
+      fontSize:   FontSize.md,
+      fontWeight: FontWeight.bold,
+      color:      C.textPrimary,
+    },
+    signInSub: {
+      fontSize: FontSize.sm,
+      color:    C.textSecondary,
+    },
+    googleBtn: {
+      height:          46,
+      borderRadius:    Radius.pill,
+      backgroundColor: '#ffffff',
+      alignItems:      'center',
+      justifyContent:  'center',
+      shadowColor:     '#000',
+      shadowOpacity:   0.10,
+      shadowRadius:    6,
+      shadowOffset:    { width: 0, height: 2 },
+      elevation:       2,
+    },
+    googleBtnText: {
+      fontSize:   FontSize.sm,
+      fontWeight: FontWeight.semibold,
+      color:      '#1a1a1a',
+    },
+    appleBtn: {
+      height:          46,
+      borderRadius:    Radius.pill,
+      backgroundColor: '#000000',
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+    appleBtnText: {
+      fontSize:   FontSize.sm,
+      fontWeight: FontWeight.semibold,
+      color:      '#ffffff',
+    },
+    authTabRow: {
+      flexDirection:   'row',
+      borderRadius:    Radius.pill,
+      backgroundColor: C.bg,
+      borderWidth:     1,
+      borderColor:     C.border,
+      overflow:        'hidden',
+    },
+    authTab: {
+      flex:            1,
+      paddingVertical: 10,
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+    authTabActive: {
+      backgroundColor: C.accent,
+    },
+    authTabText: {
+      fontSize:   FontSize.sm,
+      fontWeight: FontWeight.medium,
+      color:      C.textSecondary,
+    },
+    authTabTextActive: {
+      color:      C.accentText,
+      fontWeight: FontWeight.semibold,
+    },
+    authInput: {
+      height:            46,
+      borderRadius:      Radius.md,
+      borderWidth:       1,
+      borderColor:       C.border,
+      backgroundColor:   C.bg,
+      paddingHorizontal: Spacing.md,
+      fontSize:          FontSize.md,
+      color:             C.textPrimary,
+    },
+    authInputError: {
+      borderColor: '#EF4444',
+    },
+    authErrorText: {
+      fontSize:  FontSize.sm,
+      color:     '#EF4444',
+      marginTop: -2,
+    },
+    emailSubmitBtn: {
+      height:          46,
+      borderRadius:    Radius.pill,
+      backgroundColor: C.accent,
+      alignItems:      'center',
+      justifyContent:  'center',
+    },
+    emailSubmitText: {
+      fontSize:   FontSize.sm,
+      fontWeight: FontWeight.semibold,
+      color:      C.accentText,
+    },
+    forgotText: {
+      fontSize:  FontSize.sm,
+      color:     C.accent,
+      textAlign: 'center',
+      paddingVertical: 2,
+    },
+    orRow: {
+      flexDirection: 'row',
+      alignItems:    'center',
+      gap:           Spacing.sm,
+      marginVertical: 2,
+    },
+    orLine: {
+      flex:            1,
+      height:          1,
+      backgroundColor: C.separator,
+    },
+    orText: {
+      fontSize: FontSize.sm,
+      color:    C.textTertiary,
     },
   })
 }

@@ -29,6 +29,12 @@ Firebase layer
 Audio + haptics
   -> local cue playback
   -> optional haptics on transitions
+
+Android background execution layer
+  -> foreground service notification
+  -> background timer state persistence
+  -> notification actions for pause / resume / skip
+  -> native command bridge back into JS
 ```
 
 ## Timer engine
@@ -104,16 +110,34 @@ Ad surfaces currently in use:
 Current audio is local file playback through `expo-av`.
 
 Current sound-theme support:
-- confirmation
+- beep
 - bell
-- message pop
-- interface start
-- positive
+- gong
+- whistle
+
+Current voice support:
+- spoken countdown numbers
+- spoken phase names
+- spoken completion cue
 
 Current limitations:
-- no spoken voice implementation yet
 - no separate dedicated sound set for countdown vs transition
-- no background-audio reliability work yet
+- Android background cues are implemented, iOS background audio is not
+
+## Android background execution
+
+Android now uses a foreground service based background timer layer.
+
+Current behaviour:
+- app hands off running workouts to a persistent notification when backgrounded
+- timer state is written to AsyncStorage so the foreground screen can resync on return
+- notification shows `Pause` / `Resume` and `Skip`
+- notification action taps go through a small native Android receiver and module, then back into the JS background loop
+- tapping the notification returns to the app
+
+Current implementation note:
+- notification actions required patching `react-native-background-actions` under `node_modules`
+- if dependencies are reinstalled, that patch may need to be re-applied or moved into a maintained patch workflow
 
 ## Firebase
 
@@ -142,7 +166,6 @@ There is also a separate saved phase-colour model used by the timer UI.
 ## What is not built yet
 
 These were part of the earlier plan but are not current implementation:
-- Android foreground service
 - iOS background execution strategy
 - lock screen / notification timer state
 - watch bridge
@@ -157,4 +180,4 @@ Keep the current separation:
 - Firebase stays additive until a real sync or auth requirement is defined
 - settings own display and cue preferences
 
-If background execution is added later, the timer engine contract should stay the same and only the execution layer should change.
+The timer engine contract stays the same while the execution layer changes between foreground UI timing and Android background notification timing.

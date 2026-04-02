@@ -1,10 +1,11 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, AppState, AppStateStatus,
 } from 'react-native'
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import Svg, { Path } from 'react-native-svg'
+import Svg, { Path, Circle } from 'react-native-svg'
 
 import { RootStackParamList } from '../navigation/types'
 import { AppSettings, TimerState, Workout } from '../types'
@@ -17,6 +18,11 @@ import { Spacing, Radius, FontSize, FontWeight, useColors, useTheme } from '../t
 import CircularTimer from '../components/CircularTimer'
 import ExitButton from '../components/ExitButton'
 import { cuePlayer } from '../audio/cuePlayer'
+import {
+  startBackgroundTimer, stopBackgroundTimer, readBackgroundState,
+  isBackgroundTimerRunning, pauseBackgroundTimer, resumeBackgroundTimer,
+  skipBackgroundStep, BgPhaseStep, BgTimerState, ensureNotificationPermission,
+} from '../engine/BackgroundTimerService'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>
 
@@ -25,6 +31,40 @@ const NEXT_LABELS: Record<string, string> = {
   rest:     'Next: REST',
   warmup:   'Next: WARM UP',
   cooldown: 'Next: COOL DOWN',
+}
+
+/** Mirrors TimerEngine.buildSequence — produces a plain serialisable sequence. */
+function buildBgSequence(workout: Workout): BgPhaseStep[] {
+  const steps: BgPhaseStep[] = []
+  const intervals     = workout.intervals?.length ? workout.intervals : null
+  const skipLastRest  = workout.skipLastRest !== false
+
+  if (workout.warmupDuration > 0) {
+    steps.push({ type: 'warmup', duration: workout.warmupDuration, rep: 0 })
+  }
+
+  if (intervals) {
+    intervals.forEach((interval, index) => {
+      const rep = index + 1
+      steps.push({ type: 'work', duration: interval.workDuration, rep })
+      if ((index < intervals.length - 1 || !skipLastRest) && interval.restDuration > 0) {
+        steps.push({ type: 'rest', duration: interval.restDuration, rep })
+      }
+    })
+  } else {
+    for (let i = 1; i <= workout.reps; i++) {
+      steps.push({ type: 'work', duration: workout.workDuration, rep: i })
+      if ((i < workout.reps || !skipLastRest) && workout.restDuration > 0) {
+        steps.push({ type: 'rest', duration: workout.restDuration, rep: i })
+      }
+    }
+  }
+
+  if (workout.cooldownDuration > 0) {
+    steps.push({ type: 'cooldown', duration: workout.cooldownDuration, rep: 0 })
+  }
+
+  return steps
 }
 
 function formatDuration(seconds: number): string {
@@ -42,6 +82,31 @@ function formatTotal(seconds: number): string {
   return `${m}:${s.toString().padStart(2, '0')}`
 }
 
+function formatClock(seconds: number): string {
+  const safe = Math.max(0, Math.ceil(seconds))
+  const m = Math.floor(safe / 60)
+  const s = safe % 60
+  return `${m}:${s.toString().padStart(2, '0')}`
+}
+
+function mergeBgState(previous: TimerState | null, bgState: BgTimerState): TimerState | null {
+  if (!previous) return null
+
+  return {
+    ...previous,
+    status: bgState.status,
+    currentPhase: bgState.currentPhase,
+    countdown: bgState.countdown,
+    phaseDuration: bgState.phaseDuration,
+    currentRep: bgState.currentRep,
+    totalReps: bgState.totalReps,
+    elapsedTotal: bgState.elapsedTotal,
+    nextPhase: bgState.nextPhase,
+    nextPhaseDuration: bgState.nextPhaseDuration,
+    workoutName: bgState.workoutName,
+  }
+}
+
 export default function ActiveWorkoutScreen({ route, navigation }: Props) {
   const C = useColors()
   const { theme } = useTheme()
@@ -52,16 +117,123 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
   const [isFavourite, setIsFavourite] = useState(false)
   const [settings, setSettings] = useState<AppSettings>(DEFAULT_SETTINGS)
   const [workout, setWorkout] = useState<Workout | null>(null)
+  const [isBackgroundControlled, setIsBackgroundControlled] = useState(false)
   const startTimeRef = useRef<number>(0)
   const hasStartedRef = useRef(false)
   const allowCloseRef = useRef(false)
   const prevCountdownRef = useRef<number | null>(null)
   const settingsRef = useRef<AppSettings>(DEFAULT_SETTINGS)
   const workoutRef = useRef<Workout | null>(null)
+  const appStateRef = useRef<AppStateStatus>(AppState.currentState)
 
   useEffect(() => {
     settingsRef.current = settings
   }, [settings])
+
+  useEffect(() => {
+    void ensureNotificationPermission()
+  }, [])
+
+  useEffect(() => {
+    if (!isBackgroundControlled) return
+
+    let disposed = false
+
+    const syncFromBackground = async () => {
+      const bgState = await readBackgroundState()
+      if (!bgState || disposed) return
+      setTimerState(previous => mergeBgState(previous, bgState) ?? previous)
+    }
+
+    void syncFromBackground()
+    const intervalId = setInterval(() => {
+      void syncFromBackground()
+    }, 250)
+
+    return () => {
+      disposed = true
+      clearInterval(intervalId)
+    }
+  }, [isBackgroundControlled])
+
+  // ── Background / foreground handling ────────────────────────────────────────
+  useEffect(() => {
+    const handleAppStateChange = async (nextState: AppStateStatus) => {
+      const prevState = appStateRef.current
+      appStateRef.current = nextState
+
+      const engineState = timerEngine.getState()
+
+      // Background the session into the foreground service so the workout
+      // continues from the notification shade instead of PiP.
+      if (
+        prevState === 'active'
+        && nextState !== 'active'
+        && workoutRef.current
+        && engineState.status === 'running'
+      ) {
+        try {
+          const notificationsAllowed = await ensureNotificationPermission()
+          if (!notificationsAllowed) {
+            console.warn('Background timer skipped because notification permission was denied.')
+            return
+          }
+
+          const workout = workoutRef.current
+          const currentSettings = settingsRef.current
+          const seq = buildBgSequence(workout)
+          const currentStep = Math.max(
+            0,
+            seq.findIndex(
+              s => s.type === engineState.currentPhase && s.rep === engineState.currentRep
+            )
+          )
+
+          await startBackgroundTimer({
+            sequence:    seq,
+            stepIndex:   currentStep,
+            countdown:   engineState.countdown,
+            status:      'running',
+            totalReps:   engineState.totalReps,
+            currentRep:  engineState.currentRep,
+            workoutName: engineState.workoutName,
+            elapsedTotal: engineState.elapsedTotal,
+            audio: {
+              soundCues: currentSettings.soundCues,
+              voiceCues: workout.voiceCues !== undefined ? workout.voiceCues : currentSettings.voiceCues,
+              countdownBeeps: currentSettings.countdownBeeps,
+              finalCountdown: currentSettings.finalCountdown,
+              soundTheme: workout.soundTheme ?? currentSettings.soundTheme,
+            },
+          })
+
+          setIsBackgroundControlled(true)
+          timerEngine.pause()
+        } catch (error) {
+          console.error('Failed to start background timer service', error)
+        }
+      }
+
+      if (prevState !== 'active' && nextState === 'active') {
+        if (isBackgroundTimerRunning() || isBackgroundControlled) {
+          const bgState = await readBackgroundState()
+          if (bgState) {
+            timerEngine.jumpToPosition(
+              bgState.stepIndex,
+              bgState.countdown,
+              bgState.status,
+              bgState.elapsedTotal
+            )
+          }
+          await stopBackgroundTimer()
+          setIsBackgroundControlled(false)
+        }
+      }
+    }
+
+    const sub = AppState.addEventListener('change', handleAppStateChange)
+    return () => sub.remove()
+  }, [isBackgroundControlled])
 
   // Load workout and subscribe to engine on mount
   useEffect(() => {
@@ -163,9 +335,12 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
     }
   }, [workoutId])
 
-  // Save history on unmount
+  // Save history and clean up background service on unmount
   useEffect(() => {
     return () => {
+      void deactivateKeepAwake()
+      stopBackgroundTimer()
+
       const state = timerEngine.getState()
       if (!hasStartedRef.current || state.status === 'idle') return
 
@@ -185,6 +360,15 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
     }
   }, [])
 
+  // Keep screen on while running, allow sleep when paused/complete/idle
+  useEffect(() => {
+    if (timerState?.status === 'running') {
+      void activateKeepAwakeAsync()
+    } else {
+      void deactivateKeepAwake()
+    }
+  }, [timerState?.status])
+
   // Circle only starts or resumes — never pauses. Prevents accidental mid-workout pauses.
   const handleCircleTap = useCallback(() => {
     const { status } = timerEngine.getState()
@@ -193,13 +377,38 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
     }
   }, [])
 
-  const handlePause = useCallback(() => {
-    timerEngine.pause()
-  }, [])
+  const handlePauseResume = useCallback(async () => {
+    if (isBackgroundControlled) {
+      const bgState = await readBackgroundState()
+      if (!bgState) return
 
-  const handleSkip = useCallback(() => {
+      if (bgState.status === 'running') {
+        await pauseBackgroundTimer()
+      } else if (bgState.status === 'paused') {
+        await resumeBackgroundTimer()
+      }
+      return
+    }
+
+    const { status } = timerEngine.getState()
+    if (status === 'running') {
+      timerEngine.pause()
+      return
+    }
+
+    if (status === 'idle' || status === 'paused') {
+      timerEngine.start()
+    }
+  }, [isBackgroundControlled])
+
+  const handleSkip = useCallback(async () => {
+    if (isBackgroundControlled) {
+      await skipBackgroundStep()
+      return
+    }
+
     timerEngine.skipToNextStep()
-  }, [])
+  }, [isBackgroundControlled])
 
   const handleExit = useCallback(() => {
     allowCloseRef.current = true
@@ -234,14 +443,25 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
         <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
         <View style={styles.doneContainer}>
           <View style={styles.doneCheck}>
-            <Text style={[styles.doneCheckMark, { color: settings.phaseColors.complete }]}>Done</Text>
+            <Svg width={72} height={72} viewBox="0 0 72 72" fill="none">
+              <Circle cx="36" cy="36" r="34" stroke={settings.phaseColors.complete} strokeWidth="3" />
+              <Path
+                d="M22 36 L32 46 L50 28"
+                stroke={settings.phaseColors.complete}
+                strokeWidth="3.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </Svg>
           </View>
           <Text style={styles.doneName}>{timerState.workoutName}</Text>
-          <Text style={styles.doneStats}>
-            {timerState.totalReps} rep{timerState.totalReps !== 1 ? 's' : ''} complete
-          </Text>
+          {timerState.totalReps > 1 ? (
+            <Text style={styles.doneStats}>
+              {timerState.totalReps} reps complete
+            </Text>
+          ) : null}
           <Text style={styles.doneTime}>
-            Total time: {formatTotal(timerState.elapsedTotal)}
+            {formatTotal(timerState.elapsedTotal)}
           </Text>
           <TouchableOpacity style={styles.doneBtn} onPress={handleStartAgain}>
             <Text style={styles.doneBtnText}>Start again</Text>
@@ -288,14 +508,16 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
             {timerState.workoutName}
           </Text>
 
-          {/* Pause — only visible while running, small and deliberate */}
-          {timerState.status === 'running' ? (
+          {/* Pause/resume stays small so the central timer remains primary. */}
+          {timerState.status !== 'idle' && timerState.status !== 'complete' ? (
             <TouchableOpacity
-              onPress={handlePause}
+              onPress={() => void handlePauseResume()}
               style={styles.pauseBtn}
               hitSlop={8}
             >
-              <Text style={styles.pauseBtnText}>Pause</Text>
+              <Text style={styles.pauseBtnText}>
+                {timerState.status === 'paused' ? 'Resume' : 'Pause'}
+              </Text>
             </TouchableOpacity>
           ) : (
             <View style={styles.topBtnPlaceholder} />
@@ -330,7 +552,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
             <Text style={styles.nextLabel}>Last phase</Text>
           )}
           {canSkip ? (
-            <TouchableOpacity style={styles.skipBtn} onPress={handleSkip} activeOpacity={0.7}>
+            <TouchableOpacity style={styles.skipBtn} onPress={() => void handleSkip()} activeOpacity={0.7}>
               <Text style={styles.skipBtnText}>Skip ahead</Text>
             </TouchableOpacity>
           ) : null}
@@ -439,12 +661,7 @@ function createStyles(C: ReturnType<typeof useColors>) {
       paddingHorizontal: Spacing.xl,
     },
     doneCheck: {
-      marginBottom: Spacing.sm,
-    },
-    doneCheckMark: {
-      fontSize:   FontSize.xxl,
-      fontWeight: FontWeight.heavy,
-      color:      C.accent,
+      marginBottom: Spacing.md,
     },
     doneName: {
       fontSize:   FontSize.xxl,
@@ -457,8 +674,10 @@ function createStyles(C: ReturnType<typeof useColors>) {
       color:    C.textSecondary,
     },
     doneTime: {
-      fontSize: FontSize.md,
-      color:    C.textTertiary,
+      fontSize:   FontSize.xxl,
+      fontWeight: FontWeight.heavy,
+      color:      C.textPrimary,
+      fontVariant: ['tabular-nums'],
     },
     doneBtn: {
       marginTop:         Spacing.xl,

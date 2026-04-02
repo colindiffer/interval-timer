@@ -20,13 +20,12 @@ export default function TestBannerAd({ variant }: { variant: Variant }) {
   }
 
   const { BannerAd, BannerAdSize, TestIds } = adsModule
-  const isInline = variant === 'inline'
 
   return (
-    <View style={isInline ? styles.inlineWrap : styles.footerWrap}>
+    <View style={variant === 'inline' ? styles.inlineWrap : styles.footerWrap}>
       <BannerAd
-        unitId={isInline ? TestIds.ADAPTIVE_BANNER : TestIds.BANNER}
-        size={isInline ? BannerAdSize.INLINE_ADAPTIVE_BANNER : BannerAdSize.BANNER}
+        unitId={TestIds.BANNER}
+        size={BannerAdSize.BANNER}
         requestOptions={{ requestNonPersonalizedAdsOnly: true }}
         onAdFailedToLoad={() => setFailed(true)}
       />
@@ -45,15 +44,13 @@ function createStyles(C: ReturnType<typeof useColors>) {
       backgroundColor: C.bg,
     },
     inlineWrap: {
-      minHeight:       90,
+      height:          60,
       borderRadius:    Radius.md,
       alignItems:      'center',
       justifyContent:  'center',
       marginBottom:    12,
       overflow:        'hidden',
       backgroundColor: C.bgCard,
-      borderWidth:     1,
-      borderColor:     C.border,
     },
     footerFallback: {
       height:          50,
@@ -64,14 +61,12 @@ function createStyles(C: ReturnType<typeof useColors>) {
       borderTopColor:  C.border,
     },
     inlineFallback: {
-      height:          90,
+      height:          60,
       backgroundColor: C.adBg,
       borderRadius:    Radius.md,
       alignItems:      'center',
       justifyContent:  'center',
       marginBottom:    12,
-      borderWidth:     1,
-      borderColor:     C.border,
     },
     label: {
       fontSize:      FontSize.xs,

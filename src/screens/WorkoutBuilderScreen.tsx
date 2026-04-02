@@ -9,8 +9,10 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 import { RootStackParamList } from '../navigation/types'
 import { Workout, WorkoutInterval, SoundThemeId } from '../types'
 import { getWorkouts, saveWorkout, generateId } from '../data/storage'
+import { saveWorkoutToCloud } from '../data/syncService'
 import { Spacing, Radius, FontSize, FontWeight, useColors, PHASE_COLOR_OPTIONS } from '../theme'
 import { cuePlayer } from '../audio/cuePlayer'
+import { useAuth } from '../context/AuthContext'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutBuilder'>
 
@@ -173,6 +175,7 @@ type PickerField =
 export default function WorkoutBuilderScreen({ route, navigation }: Props) {
   const C = useColors()
   const styles = createStyles(C)
+  const { user } = useAuth()
   const { workoutId, duplicateFromId, duplicateName } = route.params ?? {}
   const isEditingExisting = Boolean(workoutId)
 
@@ -292,11 +295,12 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
     }
 
     await saveWorkout(workout)
+    if (user) saveWorkoutToCloud(user.uid, workout).catch(console.error)
 
     if (andStart) {
       navigation.replace('ActiveWorkout', { workoutId: workout.id })
     } else {
-      navigation.goBack()
+      navigation.navigate('Tabs', { screen: 'Library' })
     }
   }, [advancedEnabled, form, isEditingExisting, navigation, workoutId])
 

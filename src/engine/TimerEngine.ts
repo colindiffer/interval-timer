@@ -203,6 +203,48 @@ class TimerEngine {
     this.currentStepIndex = 0
   }
 
+  /**
+   * Sync the engine to a position returned by the background timer service.
+   * Called when the app returns to the foreground mid-workout.
+   */
+  jumpToPosition(
+    stepIndex: number,
+    countdown: number,
+    status: TimerState['status'] = 'running',
+    elapsedTotal: number = this.state.elapsedTotal
+  ): void {
+    if (this.sequence.length === 0) return
+    const clampedStep = Math.min(stepIndex, this.sequence.length - 1)
+
+    this.clearInterval()
+    this.currentStepIndex = clampedStep
+
+    const base = this.stateFromStep(clampedStep)
+    this.state = {
+      ...this.state,
+      ...base,
+      countdown,
+      status,
+      elapsedTotal,
+    }
+
+    if (status === 'complete') {
+      this.state = {
+        ...this.state,
+        countdown: 0,
+        nextPhase: null,
+        nextPhaseDuration: 0,
+      }
+    }
+
+    this.emitTick()
+    if (status === 'running') {
+      this.startInterval()
+    } else if (status === 'complete') {
+      this.emitComplete()
+    }
+  }
+
   getState(): TimerState {
     return { ...this.state }
   }

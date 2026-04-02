@@ -6,8 +6,8 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs'
 import Svg, { Path, Circle } from 'react-native-svg'
 
 import { useColors, useTheme } from '../theme'
+import { useAuth } from '../context/AuthContext'
 import { RootStackParamList, TabParamList } from './types'
-
 import CreateScreen         from '../screens/CreateScreen'
 import LibraryScreen        from '../screens/LibraryScreen'
 import HistoryScreen        from '../screens/HistoryScreen'
@@ -100,6 +100,11 @@ function Tabs() {
 export default function AppNavigator() {
   const C = useColors()
   const { theme } = useTheme()
+  const { loading } = useAuth()
+
+  // Still resolving Firebase session — render nothing to avoid flash
+  if (loading) return null
+
   return (
     <NavigationContainer
       theme={{

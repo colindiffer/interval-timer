@@ -52,10 +52,13 @@ The app should answer three things at a glance:
 - Large circular timer
 - Tap circle to start or resume
 - Small deliberate pause button
-- Hold-to-exit button
+- Single-tap exit button
 - No swipe back
 - Next phase preview
 - Favourite toggle
+- Android background notification handoff
+- Android notification `Pause` / `Resume` and `Skip`
+- Android background audio cues
 
 ### Settings
 - Theme mode
@@ -84,7 +87,7 @@ The app should answer three things at a glance:
 - Decide whether Firebase is for auth only, sync only, or both
 - Decide the source-of-truth migration plan before wiring Firestore into existing local flows
 - Build the first real Firebase-backed flow or remove unused backend surface until needed
-- Make `voice cues` real or remove the toggle
+- Move the local `react-native-background-actions` notification patch into a durable patching strategy
 - Add explicit dev-build notes to the project flow once Firebase runtime usage begins
 - Review all 20 presets and tighten the timings where needed
 - Improve settings polish so old controls remain obvious
@@ -96,10 +99,10 @@ The app should answer three things at a glance:
 - Improve history grouping and detail
 - Add a better last-workout shortcut on create or library
 - Tune the active timer layout further for light mode
+- Add a clearer active-state notification style and metadata polish
 
 ### Later
-- Native background execution
-- Foreground service / iOS background handling
+- iOS background execution
 - Cloud sync between devices
 - Watch support
 - Real monetisation
