@@ -35,19 +35,19 @@ workflows:
       - name: Install CocoaPods
         script: cd ios && pod install
 
-      - name: Apply code signing profiles
-        script: xcode-project use-profiles
-
       - name: Build IPA
         script: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           echo "Building workspace: $WORKSPACE scheme: $SCHEME"
+          TEAM_ID=$(security find-identity -p codesigning -v | grep -o '([A-Z0-9]\{10\})' | head -1 | tr -d '()')
+          echo "Detected Team ID: $TEAM_ID"
           xcode-project build-ipa \
             --workspace "$WORKSPACE" \
             --scheme "$SCHEME" \
             --clean \
-            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO -allowProvisioningUpdates" \
+            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$TEAM_ID -allowProvisioningUpdates" \
+            --export-xcargs "-allowProvisioningUpdates" \
             --disable-xcpretty
 
     artifacts:
