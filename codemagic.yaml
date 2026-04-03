@@ -19,8 +19,19 @@ workflows:
       - name: Expo prebuild
         script: npx expo prebuild --platform ios --no-install
 
-      - name: Patch Podfile for Firebase static frameworks
-        script: sed -i '' '1s/^/$RNFirebaseAsStaticFramework = true\n/' ios/Podfile
+      - name: Patch Podfile for Firebase static frameworks and Xcode 16 fixes
+        script: |
+          sed -i '' '1s/^/$RNFirebaseAsStaticFramework = true\n/' ios/Podfile
+          cat >> ios/Podfile << 'RUBY'
+
+post_install do |installer|
+  installer.pods_project.targets.each do |target|
+    target.build_configurations.each do |config|
+      config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'
+    end
+  end
+end
+RUBY
 
       - name: Install CocoaPods
         script: cd ios && pod install
