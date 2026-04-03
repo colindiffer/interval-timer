@@ -60,7 +60,8 @@ workflows:
             --scheme "$SCHEME" \
             --export-options-plist /Users/builder/export_options.plist \
             --clean \
-            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO"
+            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO" \
+            --disable-xcpretty
 
     artifacts:
       - build/ios/ipa/*.ipa
