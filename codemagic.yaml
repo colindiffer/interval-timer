@@ -9,6 +9,9 @@ workflows:
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.differapps.intervaltimer
+        provisioning_profiles:
+          - com.differapps.intervaltimer
+          - com.differapps.intervaltimer.IntervalTimerWidget
       node: latest
       xcode: 16.2
       cocoapods: default
@@ -51,6 +54,8 @@ workflows:
               <dict>
                   <key>com.differapps.intervaltimer</key>
                   <string>Interval Timer App Store</string>
+                  <key>com.differapps.intervaltimer.IntervalTimerWidget</key>
+                  <string>IntervalTimerWidget App Store</string>
               </dict>
               <key>signingCertificate</key>
               <string>Apple Distribution</string>
