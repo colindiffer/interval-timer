@@ -22,7 +22,7 @@ workflows:
       - name: Patch Podfile for Firebase static frameworks and Xcode 16 fixes
         script: |
           sed -i '' '1s/^/$RNFirebaseAsStaticFramework = true\n/' ios/Podfile
-          printf "\npost_install do |installer|\n  installer.pods_project.targets.each do |target|\n    target.build_configurations.each do |config|\n      config.build_settings['CLANG_ENABLE_EXPLICIT_MODULES'] = 'NO'\n    end\n  end\nend\n" >> ios/Podfile
+          python3 -c "f='ios/Podfile';txt=open(f).read();patch='\n  installer.pods_project.targets.each do |target|\n    target.build_configurations.each do |config|\n      config.build_settings[\"CLANG_ENABLE_EXPLICIT_MODULES\"]=\"NO\"\n    end\n  end';txt=txt.replace('post_install do |installer|','post_install do |installer|'+patch,1);open(f,'w').write(txt)"
 
       - name: Install CocoaPods
         script: cd ios && pod install
