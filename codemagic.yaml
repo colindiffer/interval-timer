@@ -16,8 +16,9 @@ workflows:
       - name: Install npm dependencies
         script: npm install --ignore-scripts
 
-      - name: Apply repo patches
-        script: npx patch-package
+      - name: Patch RN Firebase iOS podspec
+        script: |
+          python3 -c "f='node_modules/@react-native-firebase/app/RNFBApp.podspec';txt=open(f).read();old='  s.source_files        = \"ios/**/*.{h,m}\"\\n';new='  s.source_files        = \"ios/**/*.{h,m}\"\\n\\n  # App must define modules for static framework integration of other packages to work.\\n  # Also allow React Core headers while RNFBApp is built as a framework module.\\n  s.pod_target_xcconfig = {\\n    \"DEFINES_MODULE\" => \"YES\",\\n    \"CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES\" => \"YES\",\\n  }\\n';txt=txt.replace(old,new,1);open(f,'w').write(txt)"
 
       - name: Expo prebuild
         script: npx expo prebuild --platform ios --no-install
