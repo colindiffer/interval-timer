@@ -47,8 +47,7 @@ workflows:
             --workspace "$WORKSPACE" \
             --scheme "$SCHEME" \
             --clean \
-            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO" \
-            --export-xcargs "-allowProvisioningUpdates" \
+            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO -allowProvisioningUpdates" \
             --disable-xcpretty
 
     artifacts:
