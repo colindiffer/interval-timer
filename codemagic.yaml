@@ -56,7 +56,8 @@ workflows:
             --workspace "$WORKSPACE" \
             --scheme "$SCHEME" \
             --export-options-plist /Users/builder/export_options.plist \
-            --clean
+            --clean \
+            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO"
 
     artifacts:
       - build/ios/ipa/*.ipa
