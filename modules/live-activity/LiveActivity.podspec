@@ -7,7 +7,7 @@ Pod::Spec.new do |s|
   s.author         = { 'Colin Differ' => 'colindiffer@gmail.com' }
   s.homepage       = 'https://github.com/colindiffer/interval-timer'
   s.license        = { :type => 'MIT' }
-  s.platform       = :ios, '16.2'
+  s.platform       = :ios, '15.1'
   s.source         = { :git => 'https://github.com/colindiffer/interval-timer.git', :tag => s.version.to_s }
   s.static_framework = true
   s.dependency 'ExpoModulesCore'
