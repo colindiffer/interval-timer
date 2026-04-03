@@ -46,7 +46,6 @@
     "plugins": [
       "@react-native-firebase/app",
       "./plugins/withLiveActivities.js",
-      ["@bacons/apple-targets", {}],
       [
         "@react-native-google-signin/google-signin",
         {
