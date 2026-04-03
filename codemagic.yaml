@@ -19,6 +19,9 @@ workflows:
       - name: Expo prebuild
         script: npx expo prebuild --platform ios --no-install
 
+      - name: Patch Podfile for Firebase static frameworks
+        script: sed -i '' '1s/^/$RNFirebaseAsStaticFramework = true\n/' ios/Podfile
+
       - name: Install CocoaPods
         script: cd ios && pod install
 
