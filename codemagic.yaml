@@ -20,6 +20,10 @@ workflows:
         script: |
           python3 -c "f='node_modules/@react-native-firebase/app/RNFBApp.podspec';txt=open(f).read();old='  s.source_files        = \"ios/**/*.{h,m}\"\\n';new='  s.source_files        = \"ios/**/*.{h,m}\"\\n\\n  # App must define modules for static framework integration of other packages to work.\\n  # Also allow React Core headers while RNFBApp is built as a framework module.\\n  s.pod_target_xcconfig = {\\n    \"DEFINES_MODULE\" => \"YES\",\\n    \"CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES\" => \"YES\",\\n  }\\n';txt=txt.replace(old,new,1);open(f,'w').write(txt)"
 
+      - name: Patch RN Firebase Firestore iOS source
+        script: |
+          python3 -c "f='node_modules/@react-native-firebase/firestore/ios/RNFBFirestore/RNFBFirestoreCollectionModule.m';txt=open(f).read();old='      [RNFBFirestoreCommon\\n          promiseRejectFirestoreException:reject\\n                                    error:[NSException exceptionWithName:\\n                                                           @\"RNFB Firestore: Invalid Aggregate Type\"\\n                                                                  reason:reason\\n                                                                userInfo:nil]];';new='      NSError *invalidAggregateError = [NSError\\n          errorWithDomain:@\"RNFB Firestore\"\\n                       code:0\\n                   userInfo:@{NSLocalizedDescriptionKey : reason}];\\n      [RNFBFirestoreCommon promiseRejectFirestoreException:reject error:invalidAggregateError];';txt=txt.replace(old,new,1);open(f,'w').write(txt)"
+
       - name: Expo prebuild
         script: npx expo prebuild --platform ios --no-install
 
