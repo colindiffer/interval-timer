@@ -2,15 +2,16 @@ diff --git a/node_modules/@react-native-firebase/app/RNFBApp.podspec b/node_modu
 index 1234567..89abcde 100644
 --- a/node_modules/@react-native-firebase/app/RNFBApp.podspec
 +++ b/node_modules/@react-native-firebase/app/RNFBApp.podspec
-@@ -31,6 +31,12 @@ Pod::Spec.new do |s|
+@@ -31,6 +31,13 @@ Pod::Spec.new do |s|
      Pod::UI.puts '[react-native-firebase] '.yellow + "All modules will require New Architecture support in the future."
      Pod::UI.puts '[react-native-firebase] '.yellow + "Suppress this with environment variable RNFB_SUPPRESS_NEW_ARCHITECTURE_WARNING=1"
    end
 +
 +  # App must define modules for static framework integration of other packages to work.
-+  # This matches the upstream iOS fix added after 23.8.8 for Expo prebuild/static linkage.
++  # Also allow React Core headers while RNFBApp is built as a framework module.
 +  s.pod_target_xcconfig = {
 +    "DEFINES_MODULE" => "YES",
++    "CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES" => "YES",
 +  }
  
  
