@@ -45,6 +45,8 @@
     },
     "plugins": [
       "@react-native-firebase/app",
+      "./plugins/withLiveActivities",
+      ["@bacons/apple-targets", {}],
       [
         "@react-native-google-signin/google-signin",
         {
@@ -69,7 +71,22 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "68e4ff30-7baa-4488-b4c8-cc98e13268df"
+        "projectId": "68e4ff30-7baa-4488-b4c8-cc98e13268df",
+        "build": {
+          "experimental": {
+            "ios": {
+              "appExtensions": [
+                {
+                  "targetName": "IntervalTimerWidget",
+                  "bundleIdentifier": "com.differapps.intervaltimer.IntervalTimerWidget",
+                  "entitlements": {
+                    "com.apple.developer.live-activities": true
+                  }
+                }
+              ]
+            }
+          }
+        }
       }
     },
     "owner": "colindiffer"

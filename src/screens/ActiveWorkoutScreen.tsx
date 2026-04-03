@@ -23,6 +23,9 @@ import {
   isBackgroundTimerRunning, pauseBackgroundTimer, resumeBackgroundTimer,
   skipBackgroundStep, BgPhaseStep, BgTimerState, ensureNotificationPermission,
 } from '../engine/BackgroundTimerService'
+import {
+  isLiveActivitySupported, startLiveActivity, updateLiveActivity, endLiveActivity,
+} from '../../modules/live-activity'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>
 
@@ -107,6 +110,13 @@ function mergeBgState(previous: TimerState | null, bgState: BgTimerState): Timer
   }
 }
 
+const PHASE_LABELS: Record<string, string> = {
+  work:     'Work',
+  rest:     'Rest',
+  warmup:   'Warm Up',
+  cooldown: 'Cool Down',
+}
+
 export default function ActiveWorkoutScreen({ route, navigation }: Props) {
   const C = useColors()
   const { theme } = useTheme()
@@ -125,6 +135,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
   const settingsRef = useRef<AppSettings>(DEFAULT_SETTINGS)
   const workoutRef = useRef<Workout | null>(null)
   const appStateRef = useRef<AppStateStatus>(AppState.currentState)
+  const liveActivityIdRef = useRef<string | null>(null)
 
   useEffect(() => {
     settingsRef.current = settings
@@ -301,6 +312,26 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       if (!hasStartedRef.current && state.status === 'running') {
         hasStartedRef.current = true
         startTimeRef.current = Date.now()
+
+        // Start Live Activity on first run tick
+        if (isLiveActivitySupported() && !liveActivityIdRef.current && workoutRef.current) {
+          const phaseColor = currentSettings.phaseColors[state.currentPhase as keyof typeof currentSettings.phaseColors]
+            ?? currentSettings.phaseColors.work
+          startLiveActivity({
+            workoutName: state.workoutName,
+            initialState: {
+              phaseName: PHASE_LABELS[state.currentPhase] ?? state.currentPhase,
+              phaseColorHex: phaseColor,
+              endTime: (Date.now() + state.countdown * 1000) / 1000,
+              phaseIndex: state.currentRep > 0 ? state.currentRep - 1 : 0,
+              totalPhases: state.totalReps || 1,
+              isPaused: false,
+              pausedSecondsRemaining: 0,
+            },
+          }).then(id => {
+            liveActivityIdRef.current = id
+          }).catch(() => {})
+        }
       }
       setTimerState({ ...state })
     })
@@ -316,6 +347,22 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       if (effectiveVoice) {
         cuePlayer.speak(phase)
       }
+
+      // Update Live Activity for new phase
+      const engineState = timerEngine.getState()
+      if (liveActivityIdRef.current && engineState.status === 'running') {
+        const phaseColor = currentSettings.phaseColors[phase as keyof typeof currentSettings.phaseColors]
+          ?? currentSettings.phaseColors.work
+        updateLiveActivity(liveActivityIdRef.current, {
+          phaseName: PHASE_LABELS[phase] ?? phase,
+          phaseColorHex: phaseColor,
+          endTime: (Date.now() + engineState.countdown * 1000) / 1000,
+          phaseIndex: engineState.currentRep > 0 ? engineState.currentRep - 1 : 0,
+          totalPhases: engineState.totalReps || 1,
+          isPaused: false,
+          pausedSecondsRemaining: 0,
+        }).catch(() => {})
+      }
     })
 
     const unsubComplete = timerEngine.onComplete(() => {
@@ -324,6 +371,10 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       const effectiveVoice = w?.voiceCues !== undefined ? w.voiceCues : currentSettings.voiceCues
       if (effectiveVoice) {
         cuePlayer.speak('complete')
+      }
+      if (liveActivityIdRef.current) {
+        endLiveActivity(liveActivityIdRef.current).catch(() => {})
+        liveActivityIdRef.current = null
       }
     })
 
@@ -340,6 +391,11 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
     return () => {
       void deactivateKeepAwake()
       stopBackgroundTimer()
+
+      if (liveActivityIdRef.current) {
+        endLiveActivity(liveActivityIdRef.current).catch(() => {})
+        liveActivityIdRef.current = null
+      }
 
       const state = timerEngine.getState()
       if (!hasStartedRef.current || state.status === 'idle') return
@@ -390,14 +446,44 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       return
     }
 
-    const { status } = timerEngine.getState()
-    if (status === 'running') {
+    const state = timerEngine.getState()
+    if (state.status === 'running') {
       timerEngine.pause()
+      // Update Live Activity to show paused state
+      if (liveActivityIdRef.current) {
+        const currentSettings = settingsRef.current
+        const phaseColor = currentSettings.phaseColors[state.currentPhase as keyof typeof currentSettings.phaseColors]
+          ?? currentSettings.phaseColors.work
+        updateLiveActivity(liveActivityIdRef.current, {
+          phaseName: PHASE_LABELS[state.currentPhase] ?? state.currentPhase,
+          phaseColorHex: phaseColor,
+          endTime: (Date.now() + state.countdown * 1000) / 1000,
+          phaseIndex: state.currentRep > 0 ? state.currentRep - 1 : 0,
+          totalPhases: state.totalReps || 1,
+          isPaused: true,
+          pausedSecondsRemaining: state.countdown,
+        }).catch(() => {})
+      }
       return
     }
 
-    if (status === 'idle' || status === 'paused') {
+    if (state.status === 'idle' || state.status === 'paused') {
       timerEngine.start()
+      // Update Live Activity back to running
+      if (liveActivityIdRef.current) {
+        const currentSettings = settingsRef.current
+        const phaseColor = currentSettings.phaseColors[state.currentPhase as keyof typeof currentSettings.phaseColors]
+          ?? currentSettings.phaseColors.work
+        updateLiveActivity(liveActivityIdRef.current, {
+          phaseName: PHASE_LABELS[state.currentPhase] ?? state.currentPhase,
+          phaseColorHex: phaseColor,
+          endTime: (Date.now() + state.countdown * 1000) / 1000,
+          phaseIndex: state.currentRep > 0 ? state.currentRep - 1 : 0,
+          totalPhases: state.totalReps || 1,
+          isPaused: false,
+          pausedSecondsRemaining: 0,
+        }).catch(() => {})
+      }
     }
   }, [isBackgroundControlled])
 
