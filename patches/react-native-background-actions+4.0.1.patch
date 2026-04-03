@@ -1,18 +1,18 @@
-diff --git a/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java b/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
-index 1234567..abcdefg 100644
---- a/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
-+++ b/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
-@@ -23,6 +23,9 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
-
+diff --git a/node_modules/react-native-background-actions/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java b/node_modules/react-native-background-actions/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
+index 1234567..89abcde 100644
+--- a/node_modules/react-native-background-actions/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
++++ b/node_modules/react-native-background-actions/android/src/main/java/com/asterinet/react/bgactions/RNBackgroundActionsTask.java
+@@ -20,6 +20,9 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+ 
      public static final int SERVICE_NOTIFICATION_ID = 92901;
      private static final String CHANNEL_ID = "RN_BACKGROUND_ACTIONS_CHANNEL";
 +    private static final String ACTION_PAUSE = "com.differapps.intervaltimer.BACKGROUND_TIMER_PAUSE";
 +    private static final String ACTION_RESUME = "com.differapps.intervaltimer.BACKGROUND_TIMER_RESUME";
 +    private static final String ACTION_SKIP = "com.differapps.intervaltimer.BACKGROUND_TIMER_SKIP";
-
+ 
      @SuppressLint("UnspecifiedImmutableFlag")
      @NonNull
-@@ -60,13 +63,24 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+@@ -57,17 +60,28 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
          } else {
              contentIntent = PendingIntent.getActivity(context, 0, notificationIntent, PendingIntent.FLAG_UPDATE_CURRENT);
          }
@@ -40,12 +40,14 @@ index 1234567..abcdefg 100644
 +                        "Skip",
 +                        buildActionIntent(context, ACTION_SKIP, 2)
 +                );
-
+ 
          final Bundle progressBarBundle = bgOptions.getProgressBar();
-@@ -75,6 +89,17 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+         if (progressBarBundle != null) {
+@@ -75,6 +86,16 @@ final public class RNBackgroundActionsTask extends HeadlessJsTaskService {
+         }
          return builder.build();
      }
-
++
 +    @NonNull
 +    private static PendingIntent buildActionIntent(@NonNull Context context, @NonNull String action, int requestCode) {
 +        final Intent intent = new Intent(action)
@@ -55,7 +57,6 @@ index 1234567..abcdefg 100644
 +        }
 +        return PendingIntent.getBroadcast(context, requestCode, intent, PendingIntent.FLAG_UPDATE_CURRENT);
 +    }
-+
+ 
      @Override
      protected @Nullable
-     HeadlessJsTaskConfig getTaskConfig(Intent intent) {

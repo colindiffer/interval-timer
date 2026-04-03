@@ -16,13 +16,16 @@ workflows:
       - name: Install npm dependencies
         script: npm install --ignore-scripts
 
+      - name: Apply repo patches
+        script: npx patch-package
+
       - name: Expo prebuild
         script: npx expo prebuild --platform ios --no-install
 
       - name: Patch Podfile for Firebase static frameworks and Xcode 16 fixes
         script: |
           sed -i '' '1s/^/$RNFirebaseAsStaticFramework = true\n/' ios/Podfile
-          python3 -c "f='ios/Podfile';txt=open(f).read();patch='\n  installer.pods_project.targets.each do |target|\n    target.build_configurations.each do |config|\n      config.build_settings[\"CLANG_ENABLE_EXPLICIT_MODULES\"]=\"NO\"\n    end\n  end';txt=txt.replace('post_install do |installer|','post_install do |installer|'+patch,1);open(f,'w').write(txt)"
+          python3 -c "f='ios/Podfile';txt=open(f).read();patch='\n  installer.pods_project.targets.each do |target|\n    target.build_configurations.each do |config|\n      config.build_settings[\"CLANG_ENABLE_EXPLICIT_MODULES\"]=\"NO\"\n      config.build_settings[\"CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES\"]=\"YES\"\n    end\n  end';txt=txt.replace('post_install do |installer|','post_install do |installer|'+patch,1);open(f,'w').write(txt)"
 
       - name: Install CocoaPods
         script: cd ios && pod install
@@ -57,16 +60,30 @@ workflows:
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           echo "Building workspace: $WORKSPACE scheme: $SCHEME"
-          xcode-project build-ipa \
+          if ! xcode-project build-ipa \
             --workspace "$WORKSPACE" \
             --scheme "$SCHEME" \
             --export-options-plist /Users/builder/export_options.plist \
             --clean \
             --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO" \
-            --disable-xcpretty
+            --disable-xcpretty; then
+            echo "Build failed. Extracting compiler errors from /tmp/xcodebuild_logs..."
+            LOG_FILE=$(find /tmp/xcodebuild_logs -name "*.log" | sort | tail -1)
+            echo "Using log: $LOG_FILE"
+            if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+              mkdir -p build/ios/diagnostics
+              {
+                echo "Using log: $LOG_FILE"
+                echo
+                grep -n -C 3 "RNFBFirestoreTransactionModule.m\|error:" "$LOG_FILE" | tail -400 || true
+              } | tee build/ios/diagnostics/xcode-errors.txt
+            fi
+            exit 1
+          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
+      - build/ios/diagnostics/*.txt
       - /tmp/xcodebuild_logs/*.log
       - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
 
