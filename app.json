@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Interval Timer: Exercise, Tabata, HIIT",
+    "name": "Flash Interval Timer Workout",
     "slug": "IntervalTimer",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,6 +14,7 @@
     },
     "ios": {
       "supportsTablet": false,
+      "buildNumber": "2",
       "bundleIdentifier": "com.differapps.intervaltimer",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -25,6 +26,7 @@
       }
     },
     "android": {
+      "versionCode": 3,
       "package": "com.differapps.intervaltimer",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
