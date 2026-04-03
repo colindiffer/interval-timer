@@ -37,7 +37,7 @@ class CuePlayer {
     await Audio.setAudioModeAsync(BASE_AUDIO_MODE)
     const { sound } = await Audio.Sound.createAsync(SOURCES[theme], {
       shouldPlay: false,
-      progressUpdateIntervalMillis: 0,
+      progressUpdateIntervalMillis: 500,
     })
     this.sounds.set(theme, sound)
     return sound
