@@ -21,7 +21,7 @@ import { cuePlayer } from '../audio/cuePlayer'
 import {
   startBackgroundTimer, stopBackgroundTimer, readBackgroundState,
   isBackgroundTimerRunning, pauseBackgroundTimer, resumeBackgroundTimer,
-  skipBackgroundStep, BgPhaseStep, BgTimerState, ensureNotificationPermission,
+  skipBackgroundStep, BgPhaseStep, BgTimerState, ensureNotificationPermission, persistLiveActivityId,
 } from '../engine/BackgroundTimerService'
 import {
   isLiveActivitySupported, startLiveActivity, updateLiveActivity, endLiveActivity,
@@ -216,6 +216,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
               finalCountdown: currentSettings.finalCountdown,
               soundTheme: workout.soundTheme ?? currentSettings.soundTheme,
             },
+            phaseColors: currentSettings.phaseColors,
           })
 
           setIsBackgroundControlled(true)
@@ -330,6 +331,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
             },
           }).then(id => {
             liveActivityIdRef.current = id
+            void persistLiveActivityId(id)
           }).catch(() => {})
         }
       }
@@ -375,6 +377,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       if (liveActivityIdRef.current) {
         endLiveActivity(liveActivityIdRef.current).catch(() => {})
         liveActivityIdRef.current = null
+        void persistLiveActivityId(null)
       }
     })
 
@@ -395,6 +398,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       if (liveActivityIdRef.current) {
         endLiveActivity(liveActivityIdRef.current).catch(() => {})
         liveActivityIdRef.current = null
+        void persistLiveActivityId(null)
       }
 
       const state = timerEngine.getState()

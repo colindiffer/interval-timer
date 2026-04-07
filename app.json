@@ -13,7 +13,7 @@
       "backgroundColor": "#0A1628"
     },
     "ios": {
-      "supportsTablet": false,
+      "supportsTablet": true,
       "buildNumber": "3",
       "bundleIdentifier": "com.differapps.intervaltimer",
       "googleServicesFile": "./GoogleService-Info.plist",

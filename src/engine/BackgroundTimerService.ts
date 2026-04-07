@@ -17,11 +17,13 @@ import { PermissionsAndroid, Platform } from 'react-native'
 import { cuePlayer } from '../audio/cuePlayer'
 import { PhaseType, SoundThemeId } from '../types'
 import { readAndClearNativeBackgroundCommand } from '../native/BackgroundTimerActions'
+import { endLiveActivity, updateLiveActivity } from '../../modules/live-activity'
 
 // ─── Shared keys ────────────────────────────────────────────────────────────
 
 export const BG_STATE_KEY   = '@timer_bg_state'
 export const BG_COMMAND_KEY = '@timer_bg_command'
+export const LIVE_ACTIVITY_ID_KEY = '@timer_live_activity_id'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -56,6 +58,7 @@ interface TaskData {
   workoutName: string
   elapsedTotal: number
   audio: BgAudioConfig
+  phaseColors: Partial<Record<PhaseType, string>>
 }
 
 interface BgTimerCommand {
@@ -82,6 +85,19 @@ function phaseLabel(phase: PhaseType): string {
     case 'warmup':   return 'WARM UP'
     case 'cooldown': return 'COOL DOWN'
   }
+}
+
+function liveActivityPhaseName(phase: PhaseType): string {
+  switch (phase) {
+    case 'work':     return 'Work'
+    case 'rest':     return 'Rest'
+    case 'warmup':   return 'Warm Up'
+    case 'cooldown': return 'Cool Down'
+  }
+}
+
+function liveActivityPhaseIndex(step: BgTimerState): number {
+  return step.currentRep > 0 ? step.currentRep - 1 : 0
 }
 
 function formatCountdown(seconds: number): string {
@@ -129,19 +145,33 @@ async function writeCommand(command: BgTimerCommand): Promise<void> {
   await AsyncStorage.setItem(BG_COMMAND_KEY, JSON.stringify(command))
 }
 
+export async function persistLiveActivityId(activityId: string | null): Promise<void> {
+  if (activityId) {
+    await AsyncStorage.setItem(LIVE_ACTIVITY_ID_KEY, activityId)
+    return
+  }
+
+  await AsyncStorage.removeItem(LIVE_ACTIVITY_ID_KEY)
+}
+
+async function readLiveActivityId(): Promise<string | null> {
+  return AsyncStorage.getItem(LIVE_ACTIVITY_ID_KEY)
+}
+
 // ─── Background task ─────────────────────────────────────────────────────────
 
 const bgTimerTask = async (taskDataArguments: any): Promise<void> => {
   const {
     sequence, stepIndex: initStep, countdown: initCountdown,
     status: initStatus, totalReps, workoutName, elapsedTotal: initElapsedTotal,
-    audio,
+    audio, phaseColors,
   } = taskDataArguments as TaskData
 
   let stepIndex = initStep
   let countdown = initCountdown
   let status = initStatus
   let elapsedTotal = initElapsedTotal
+  let liveActivityId = await readLiveActivityId()
 
   const makeState = (nextStatus: BgTimerState['status']): BgTimerState => {
     const safeIndex = Math.min(stepIndex, sequence.length - 1)
@@ -164,9 +194,31 @@ const bgTimerTask = async (taskDataArguments: any): Promise<void> => {
     }
   }
 
+  const syncLiveActivity = async (state: BgTimerState): Promise<void> => {
+    if (Platform.OS !== 'ios' || !liveActivityId) return
+
+    const phaseColor = phaseColors?.[state.currentPhase] ?? '#3B82F6'
+
+    try {
+      await updateLiveActivity(liveActivityId, {
+        phaseName: liveActivityPhaseName(state.currentPhase),
+        phaseColorHex: phaseColor,
+        endTime: (Date.now() + Math.max(state.countdown, 1) * 1000) / 1000,
+        phaseIndex: liveActivityPhaseIndex(state),
+        totalPhases: state.totalReps || 1,
+        isPaused: state.status === 'paused',
+        pausedSecondsRemaining: state.status === 'paused' ? state.countdown : 0,
+      })
+    } catch {
+      liveActivityId = null
+      await persistLiveActivityId(null)
+    }
+  }
+
   const persist = async (): Promise<void> => {
     const state = makeState(status)
     await AsyncStorage.setItem(BG_STATE_KEY, JSON.stringify(state))
+    await syncLiveActivity(state)
     await BackgroundService.updateNotification({
       taskTitle: workoutName,
       taskDesc: describeStep(state.currentPhase, state.countdown, status),
@@ -230,6 +282,15 @@ const bgTimerTask = async (taskDataArguments: any): Promise<void> => {
       taskTitle: workoutName,
       taskDesc: 'Workout complete!',
     })
+    if (Platform.OS === 'ios' && liveActivityId) {
+      try {
+        await endLiveActivity(liveActivityId)
+      } catch {
+        // Ignore dismissal failures.
+      }
+      liveActivityId = null
+      await persistLiveActivityId(null)
+    }
     await playCompleteCue()
 
     return 'complete'

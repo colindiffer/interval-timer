@@ -12,6 +12,7 @@ const ensureFile = (filePath, contents) => {
 const withLiveActivitySettings = (config) => {
   config = withInfoPlist(config, (mod) => {
     mod.modResults['NSSupportsLiveActivities'] = true
+    mod.modResults['NSSupportsLiveActivitiesFrequentUpdates'] = true
     return mod
   })
 
