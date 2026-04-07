@@ -35,6 +35,9 @@ workflows:
       - name: Install CocoaPods
         script: cd ios && pod install
 
+      - name: Apply code signing profiles
+        script: xcode-project use-profiles
+
       - name: Build IPA
         script: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
