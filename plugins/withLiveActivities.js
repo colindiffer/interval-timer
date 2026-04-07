@@ -1,16 +1,11 @@
-const { withInfoPlist, withEntitlementsPlist, withXcodeProject } = require('@expo/config-plugins')
+const { withInfoPlist, withXcodeProject } = require('@expo/config-plugins')
 const path = require('path')
 const fs = require('fs')
 
-// Add NSSupportsLiveActivities and entitlement to main app
+// Add NSSupportsLiveActivities to the main app
 const withLiveActivitySettings = (config) => {
   config = withInfoPlist(config, (mod) => {
     mod.modResults['NSSupportsLiveActivities'] = true
-    return mod
-  })
-
-  config = withEntitlementsPlist(config, (mod) => {
-    mod.modResults['com.apple.developer.live-activities'] = true
     return mod
   })
 
