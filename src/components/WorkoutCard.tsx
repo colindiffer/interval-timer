@@ -3,20 +3,21 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { Workout } from '../types'
 import { Spacing, Radius, FontSize, FontWeight, useColors } from '../theme'
+import { t } from '../i18n'
 
 function formatDuration(seconds: number): string {
   if (seconds === 0) return '—'
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
-  if (m === 0) return `${s}s`
-  if (s === 0) return `${m} min`
+  if (m === 0) return t('common.secondsShort', { count: s })
+  if (s === 0) return t('common.minutesShort', { count: m })
   return `${m}m ${s}s`
 }
 
 export function workoutSummary(workout: Workout): string {
   if (workout.intervals?.length) {
     if (workout.variationLabel) {
-      return `${workout.variationLabel} · ${workout.intervals.length} custom sets`
+      return `${workout.variationLabel} · ${t('common.customSets', { count: workout.intervals.length })}`
     }
 
     const first = workout.intervals[0]
@@ -27,16 +28,16 @@ export function workoutSummary(workout: Workout): string {
 
     if (samePattern) {
       if (first.restDuration === 0 && workout.intervals.length === 1) {
-        return `${formatDuration(first.workDuration)} steady`
+        return `${formatDuration(first.workDuration)} ${t('common.steady')}`
       }
       return `${formatDuration(first.workDuration)} / ${formatDuration(first.restDuration)} × ${workout.intervals.length}`
     }
 
-    return `${workout.intervals.length} custom sets · ${formatDuration(first.workDuration)} to ${formatDuration(last.workDuration)}`
+    return `${t('common.customSets', { count: workout.intervals.length })} · ${formatDuration(first.workDuration)} to ${formatDuration(last.workDuration)}`
   }
 
   if (workout.restDuration === 0 && workout.reps === 1) {
-    return `${formatDuration(workout.workDuration)} steady`
+    return `${formatDuration(workout.workDuration)} ${t('common.steady')}`
   }
   const work = formatDuration(workout.workDuration)
   const rest = formatDuration(workout.restDuration)

@@ -138,7 +138,7 @@ struct LockScreenView: View {
                         .font(.system(.title2, design: .monospaced, weight: .bold))
                         .multilineTextAlignment(.trailing)
                 }
-                Text("\(context.state.phaseIndex + 1) of \(context.state.totalPhases)")
+                Text("\(context.state.phaseIndex + 1)/\(context.state.totalPhases)")
                     .font(.caption)
                     .foregroundColor(.secondary)
             }

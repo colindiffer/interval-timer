@@ -24,21 +24,22 @@ import AdBanner from '../components/AdBanner'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
 import { pushToCloud, pullFromCloud } from '../data/syncService'
+import { t } from '../i18n'
 
 const APP_VERSION = '1.0.0'
 const FINAL_COUNT_OPTIONS = [0, 3, 5]
-const SOUND_THEMES: Array<{ id: SoundThemeId; label: string; note: string }> = [
-  { id: 'beep',    label: 'Beep',    note: 'Short electronic beep.' },
-  { id: 'bell',    label: 'Bell',    note: 'Clear achievement bell.' },
-  { id: 'gong',    label: 'Gong',    note: 'Deep resonant gong.' },
-  { id: 'whistle', label: 'Whistle', note: 'Sharp sports whistle.' },
+const SOUND_THEMES: SoundThemeId[] = [
+  'beep',
+  'bell',
+  'gong',
+  'whistle',
 ]
-const PHASE_ROWS: Array<{ key: PhaseColorKey; label: string; value: string }> = [
-  { key: 'warmup', label: 'Prepare', value: 'Warmup' },
-  { key: 'work', label: 'Work', value: 'Run' },
-  { key: 'rest', label: 'Rest', value: 'Recover' },
-  { key: 'cooldown', label: 'Cooldown', value: 'Easy out' },
-  { key: 'complete', label: 'Finish', value: 'Complete' },
+const PHASE_ROWS: Array<{ key: PhaseColorKey; labelKey: string; valueKey: string }> = [
+  { key: 'warmup', labelKey: 'settings.phase.warmupLabel', valueKey: 'settings.phase.warmupValue' },
+  { key: 'work', labelKey: 'settings.phase.workLabel', valueKey: 'settings.phase.workValue' },
+  { key: 'rest', labelKey: 'settings.phase.restLabel', valueKey: 'settings.phase.restValue' },
+  { key: 'cooldown', labelKey: 'settings.phase.cooldownLabel', valueKey: 'settings.phase.cooldownValue' },
+  { key: 'complete', labelKey: 'settings.phase.completeLabel', valueKey: 'settings.phase.completeValue' },
 ]
 
 export default function SettingsScreen() {
@@ -75,12 +76,12 @@ export default function SettingsScreen() {
   const handleRestore = useCallback(async () => {
     if (!user || restoreState === 'busy') return
     Alert.alert(
-      'Restore from cloud?',
-      'This will replace all your local workouts with the ones saved in your account.',
+      t('settings.restoreConfirmTitle'),
+      t('settings.restoreConfirmBody'),
       [
-        { text: 'Cancel', style: 'cancel' },
+        { text: t('common.cancel'), style: 'cancel' },
         {
-          text: 'Restore',
+          text: t('settings.restore'),
           style: 'destructive',
           onPress: async () => {
             setRestoreState('busy')
@@ -112,20 +113,24 @@ export default function SettingsScreen() {
     await saveSettings(partial)
   }
 
-  const audioMode = settings.voiceCues ? 'Voice' : settings.soundCues ? 'Sound' : 'None'
+  const audioMode = settings.voiceCues
+    ? t('settings.soundMode.voice')
+    : settings.soundCues
+      ? t('settings.soundMode.sound')
+      : t('settings.soundMode.none')
 
   const setAudioMode = (mode: string) => {
-    if (mode === 'Sound') update({ soundCues: true,  voiceCues: false, countdownBeeps: true  })
-    if (mode === 'Voice') update({ soundCues: false, voiceCues: true,  countdownBeeps: true  })
-    if (mode === 'None')  update({ soundCues: false, voiceCues: false, countdownBeeps: false })
+    if (mode === t('settings.soundMode.sound')) update({ soundCues: true, voiceCues: false, countdownBeeps: true })
+    if (mode === t('settings.soundMode.voice')) update({ soundCues: false, voiceCues: true, countdownBeeps: true })
+    if (mode === t('settings.soundMode.none')) update({ soundCues: false, voiceCues: false, countdownBeeps: false })
   }
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Settings</Text>
-          <Text style={styles.subtitle}>Keep the familiar controls. Add the extra ones around them.</Text>
+          <Text style={styles.title}>{t('settings.title')}</Text>
+          <Text style={styles.subtitle}>{t('settings.subtitle')}</Text>
         </View>
 
         {user ? (
@@ -134,14 +139,14 @@ export default function SettingsScreen() {
             <View style={styles.accountRow}>
               <View style={styles.accountInfo}>
                 <Text style={styles.accountName} numberOfLines={1}>
-                  {user.displayName ?? user.email ?? 'Signed in'}
+                  {user.displayName ?? user.email ?? t('settings.signedIn')}
                 </Text>
                 {user.email ? (
                   <Text style={styles.accountEmail} numberOfLines={1}>{user.email}</Text>
                 ) : null}
               </View>
               <TouchableOpacity style={styles.signOutBtn} onPress={signOut} activeOpacity={0.7}>
-                <Text style={styles.signOutText}>Sign out</Text>
+                <Text style={styles.signOutText}>{t('settings.signOut')}</Text>
               </TouchableOpacity>
             </View>
 
@@ -151,12 +156,12 @@ export default function SettingsScreen() {
             {/* Sync row */}
             <View style={styles.syncRow}>
               <View style={styles.syncInfo}>
-                <Text style={styles.syncTitle}>Sync to cloud</Text>
+                <Text style={styles.syncTitle}>{t('settings.syncToCloud')}</Text>
                 <Text style={styles.syncSub}>
-                  {syncState === 'busy'  ? 'Uploading…'
-                  : syncState === 'done'  ? 'Cloud updated'
-                  : syncState === 'error' ? 'Failed — try again'
-                  : 'Overwrite cloud with your local workouts'}
+                  {syncState === 'busy'  ? t('settings.uploading')
+                  : syncState === 'done'  ? t('settings.cloudUpdated')
+                  : syncState === 'error' ? t('settings.failedRetry')
+                  : t('settings.overwriteCloud')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -173,7 +178,7 @@ export default function SettingsScreen() {
                     syncState === 'done'  && { color: '#22C55E' },
                     syncState === 'error' && { color: C.danger },
                   ]}>
-                    {syncState === 'done' ? 'Done' : syncState === 'error' ? 'Retry' : 'Sync'}
+                    {syncState === 'done' ? t('common.done') : syncState === 'error' ? t('settings.retry') : t('settings.sync')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -184,12 +189,12 @@ export default function SettingsScreen() {
             {/* Restore row */}
             <View style={styles.syncRow}>
               <View style={styles.syncInfo}>
-                <Text style={styles.syncTitle}>Restore from cloud</Text>
+                <Text style={styles.syncTitle}>{t('settings.restoreFromCloud')}</Text>
                 <Text style={styles.syncSub}>
-                  {restoreState === 'busy'  ? 'Restoring…'
-                  : restoreState === 'done'  ? 'Workouts restored'
-                  : restoreState === 'error' ? 'Failed — try again'
-                  : 'Replace local workouts with cloud copy'}
+                  {restoreState === 'busy'  ? t('settings.restoring')
+                  : restoreState === 'done'  ? t('settings.workoutsRestored')
+                  : restoreState === 'error' ? t('settings.failedRetry')
+                  : t('settings.replaceLocalWorkouts')}
                 </Text>
               </View>
               <TouchableOpacity
@@ -206,7 +211,7 @@ export default function SettingsScreen() {
                     restoreState === 'done'  && { color: '#22C55E' },
                     restoreState === 'error' && { color: C.danger },
                   ]}>
-                    {restoreState === 'done' ? 'Done' : restoreState === 'error' ? 'Retry' : 'Restore'}
+                    {restoreState === 'done' ? t('common.done') : restoreState === 'error' ? t('settings.retry') : t('settings.restore')}
                   </Text>
                 )}
               </TouchableOpacity>
@@ -218,8 +223,8 @@ export default function SettingsScreen() {
             <View style={styles.signInLogoRow}>
               <Logo size={36} />
               <View style={styles.signInTextBlock}>
-                <Text style={styles.signInHeading}>Save your workouts</Text>
-                <Text style={styles.signInSub}>Sync across devices — free forever</Text>
+                <Text style={styles.signInHeading}>{t('settings.saveYourWorkouts')}</Text>
+                <Text style={styles.signInSub}>{t('settings.syncAcrossDevices')}</Text>
               </View>
             </View>
 
@@ -230,21 +235,21 @@ export default function SettingsScreen() {
                 onPress={() => { setAuthMode('login'); setEmailError('') }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.authTabText, authMode === 'login' && styles.authTabTextActive]}>Log in</Text>
+                <Text style={[styles.authTabText, authMode === 'login' && styles.authTabTextActive]}>{t('settings.logIn')}</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.authTab, authMode === 'register' && styles.authTabActive]}
                 onPress={() => { setAuthMode('register'); setEmailError('') }}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.authTabText, authMode === 'register' && styles.authTabTextActive]}>Create account</Text>
+                <Text style={[styles.authTabText, authMode === 'register' && styles.authTabTextActive]}>{t('settings.createAccount')}</Text>
               </TouchableOpacity>
             </View>
 
             {/* Email + password */}
             <TextInput
               style={[styles.authInput, emailError ? styles.authInputError : null]}
-              placeholder="Email"
+              placeholder={t('settings.email')}
               placeholderTextColor={C.textTertiary}
               keyboardType="email-address"
               autoCapitalize="none"
@@ -254,7 +259,7 @@ export default function SettingsScreen() {
             />
             <TextInput
               style={styles.authInput}
-              placeholder="Password"
+              placeholder={t('settings.password')}
               placeholderTextColor={C.textTertiary}
               secureTextEntry
               autoCapitalize="none"
@@ -269,7 +274,7 @@ export default function SettingsScreen() {
               activeOpacity={0.85}
               onPress={async () => {
                 if (!email.trim() || !password) {
-                  setEmailError('Please enter your email and password.')
+                  setEmailError(t('settings.enterEmailAndPassword'))
                   return
                 }
                 setSigningIn(true)
@@ -283,15 +288,15 @@ export default function SettingsScreen() {
                 } catch (e: any) {
                   const code = e?.code ?? ''
                   if (code === 'auth/invalid-credential' || code === 'auth/wrong-password' || code === 'auth/user-not-found') {
-                    setEmailError('Incorrect email or password.')
+                    setEmailError(t('settings.incorrectEmailOrPassword'))
                   } else if (code === 'auth/email-already-in-use') {
-                    setEmailError('An account with this email already exists.')
+                    setEmailError(t('settings.accountAlreadyExists'))
                   } else if (code === 'auth/weak-password') {
-                    setEmailError('Password must be at least 6 characters.')
+                    setEmailError(t('settings.passwordTooShort'))
                   } else if (code === 'auth/invalid-email') {
-                    setEmailError('Please enter a valid email address.')
+                    setEmailError(t('settings.invalidEmail'))
                   } else {
-                    setEmailError(e?.message ?? 'Something went wrong. Please try again.')
+                    setEmailError(e?.message ?? t('settings.somethingWentWrong'))
                   }
                 } finally {
                   setSigningIn(false)
@@ -299,7 +304,7 @@ export default function SettingsScreen() {
               }}
             >
               <Text style={styles.emailSubmitText}>
-                {authMode === 'login' ? 'Log in' : 'Create account'}
+                {authMode === 'login' ? t('settings.logIn') : t('settings.createAccount')}
               </Text>
             </TouchableOpacity>
 
@@ -307,26 +312,26 @@ export default function SettingsScreen() {
               <TouchableOpacity
                 onPress={async () => {
                   if (!email.trim()) {
-                    setEmailError('Enter your email above to reset your password.')
+                    setEmailError(t('settings.enterEmailToReset'))
                     return
                   }
                   try {
                     await resetPassword(email.trim())
-                    Alert.alert('Email sent', `Check ${email.trim()} for a password reset link.`)
+                    Alert.alert(t('settings.emailSent'), t('settings.resetPasswordSent', { email: email.trim() }))
                   } catch {
-                    setEmailError('Could not send reset email. Check the address and try again.')
+                    setEmailError(t('settings.resetEmailFailed'))
                   }
                 }}
                 activeOpacity={0.7}
               >
-                <Text style={styles.forgotText}>Forgot password?</Text>
+                <Text style={styles.forgotText}>{t('settings.forgotPassword')}</Text>
               </TouchableOpacity>
             ) : null}
 
             {/* Divider */}
             <View style={styles.orRow}>
               <View style={styles.orLine} />
-              <Text style={styles.orText}>or</Text>
+              <Text style={styles.orText}>{t('common.or')}</Text>
               <View style={styles.orLine} />
             </View>
 
@@ -337,7 +342,7 @@ export default function SettingsScreen() {
               activeOpacity={0.85}
               disabled={signingIn}
             >
-              <Text style={styles.googleBtnText}>Continue with Google</Text>
+              <Text style={styles.googleBtnText}>{t('settings.continueWithGoogle')}</Text>
             </TouchableOpacity>
             {appleAvailable ? (
               <TouchableOpacity
@@ -346,38 +351,38 @@ export default function SettingsScreen() {
                 activeOpacity={0.85}
                 disabled={signingIn}
               >
-                <Text style={styles.appleBtnText}>Continue with Apple</Text>
+                <Text style={styles.appleBtnText}>{t('settings.continueWithApple')}</Text>
               </TouchableOpacity>
             ) : null}
           </View>
         )}
 
-        <SectionHeader title="Theme" subtitle="Choose the phone appearance first." />
+        <SectionHeader title={t('settings.theme')} subtitle={t('settings.themeSubtitle')} />
         <View style={styles.panel}>
           <PillSelector
-            options={['Light', 'Dark', 'System']}
-            selected={darkModeSetting === false ? 'Light' : darkModeSetting === true ? 'Dark' : 'System'}
+            options={[t('settings.light'), t('settings.dark'), t('settings.system')]}
+            selected={darkModeSetting === false ? t('settings.light') : darkModeSetting === true ? t('settings.dark') : t('settings.system')}
             onSelect={option => {
-              if (option === 'Light') update({ darkMode: false })
-              if (option === 'Dark') update({ darkMode: true })
-              if (option === 'System') update({ darkMode: 'system' })
+              if (option === t('settings.light')) update({ darkMode: false })
+              if (option === t('settings.dark')) update({ darkMode: true })
+              if (option === t('settings.system')) update({ darkMode: 'system' })
             }}
           />
           <Divider />
           <InfoRow
-            label="Current mode"
-            value={darkModeSetting === false ? 'Light' : darkModeSetting === true ? 'Dark' : 'System'}
+            label={t('settings.currentMode')}
+            value={darkModeSetting === false ? t('settings.light') : darkModeSetting === true ? t('settings.dark') : t('settings.system')}
           />
         </View>
 
-        <SectionHeader title="Sound" subtitle="Sound and voice are mutually exclusive." />
+        <SectionHeader title={t('settings.sound')} subtitle={t('settings.soundSubtitle')} />
         <View style={styles.panel}>
           <PillSelector
-            options={['Sound', 'Voice', 'None']}
+            options={[t('settings.soundMode.sound'), t('settings.soundMode.voice'), t('settings.soundMode.none')]}
             selected={audioMode}
             onSelect={setAudioMode}
           />
-          {audioMode === 'Sound' ? (
+          {audioMode === t('settings.soundMode.sound') ? (
             <>
               <Divider />
               <SoundThemeSelector
@@ -389,13 +394,13 @@ export default function SettingsScreen() {
               />
             </>
           ) : null}
-          {audioMode !== 'None' ? (
+          {audioMode !== t('settings.soundMode.none') ? (
             <>
               <Divider />
               <StepperRow
-                label="Final count"
+                label={t('settings.finalCount')}
                 value={settings.finalCountdown}
-                valueLabel={settings.finalCountdown === 0 ? 'Off' : `${settings.finalCountdown}`}
+                valueLabel={settings.finalCountdown === 0 ? t('common.off') : `${settings.finalCountdown}`}
                 onDecrease={() => {
                   const index = FINAL_COUNT_OPTIONS.indexOf(settings.finalCountdown)
                   const next = FINAL_COUNT_OPTIONS[Math.max(0, index - 1)]
@@ -411,13 +416,13 @@ export default function SettingsScreen() {
           ) : null}
         </View>
 
-        <SectionHeader title="Colors" subtitle="The timer’s visual language at a glance." />
+        <SectionHeader title={t('settings.colors')} subtitle={t('settings.colorsSubtitle')} />
         <View style={styles.panel}>
           {PHASE_ROWS.map((row, index) => (
             <React.Fragment key={row.key}>
               <ColorPickerRow
-                label={row.label}
-                value={row.value}
+                label={t(row.labelKey)}
+                value={t(row.valueKey)}
                 selected={settings.phaseColors?.[row.key] ?? DEFAULT_PHASE_COLORS[row.key]}
                 onSelect={color => update({
                   phaseColors: {
@@ -431,12 +436,12 @@ export default function SettingsScreen() {
           ))}
         </View>
 
-        <SectionHeader title="Miscellaneous" subtitle="Everything else that belongs in settings." />
+        <SectionHeader title={t('settings.misc')} subtitle={t('settings.miscSubtitle')} />
         <View style={styles.panel}>
-          <LinkRow label="Banner ads" note="Placeholder only" />
+          <LinkRow label={t('settings.bannerAds')} note={t('settings.placeholderOnly')} />
           <Divider />
           <LinkRow
-            label="Rate the app"
+            label={t('settings.rateApp')}
             onPress={async () => {
               if (await StoreReview.hasAction()) {
                 await StoreReview.requestReview()
@@ -449,20 +454,20 @@ export default function SettingsScreen() {
           />
           <Divider />
           <LinkRow
-            label="Send feedback"
+            label={t('settings.sendFeedback')}
             onPress={() => Linking.openURL(
               'mailto:support@differapps.com?subject=Interval%20Timer%20Feedback'
             )}
           />
           <Divider />
           <LinkRow
-              label="Privacy policy"
-              onPress={() => Linking.openURL(
-                'https://colindiffer.github.io/privacy_policy_interval_timer.html'
-              )}
-            />
+            label={t('settings.privacyPolicy')}
+            onPress={() => Linking.openURL(
+              'https://colindiffer.github.io/privacy_policy_interval_timer.html'
+            )}
+          />
           <Divider />
-          <InfoRow label="Version" value={APP_VERSION} />
+          <InfoRow label={t('settings.version')} value={APP_VERSION} />
         </View>
       </ScrollView>
       <AdBanner />
@@ -630,12 +635,12 @@ function SoundThemeSelector({
   return (
     <View style={styles.soundThemeList}>
       {SOUND_THEMES.map(theme => {
-        const active = theme.id === selected
+        const active = theme === selected
         return (
           <TouchableOpacity
-            key={theme.id}
+            key={theme}
             style={styles.soundThemeRow}
-            onPress={() => onSelect(theme.id)}
+            onPress={() => onSelect(theme)}
             activeOpacity={0.7}
           >
             <View style={styles.soundThemeLeft}>
@@ -643,16 +648,16 @@ function SoundThemeSelector({
                 {active ? <View style={styles.radioInner} /> : null}
               </View>
               <View style={styles.soundThemeText}>
-                <Text style={styles.rowLabel}>{theme.label}</Text>
-                <Text style={styles.rowDescription}>{theme.note}</Text>
+                <Text style={styles.rowLabel}>{t(`settings.soundTheme.${theme}`)}</Text>
+                <Text style={styles.rowDescription}>{t(`settings.soundThemeNote.${theme}`)}</Text>
               </View>
             </View>
             <TouchableOpacity
               style={styles.tryBtn}
-              onPress={() => cuePlayer.play(theme.id)}
+              onPress={() => cuePlayer.play(theme)}
               activeOpacity={0.7}
             >
-              <Text style={styles.tryBtnText}>Try</Text>
+              <Text style={styles.tryBtnText}>{t('settings.try')}</Text>
             </TouchableOpacity>
           </TouchableOpacity>
         )

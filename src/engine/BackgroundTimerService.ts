@@ -18,6 +18,7 @@ import { cuePlayer } from '../audio/cuePlayer'
 import { PhaseType, SoundThemeId } from '../types'
 import { readAndClearNativeBackgroundCommand } from '../native/BackgroundTimerActions'
 import { endLiveActivity, updateLiveActivity } from '../../modules/live-activity'
+import { t } from '../i18n'
 
 // ─── Shared keys ────────────────────────────────────────────────────────────
 
@@ -80,19 +81,19 @@ const sleep = (ms: number): Promise<void> =>
 
 function phaseLabel(phase: PhaseType): string {
   switch (phase) {
-    case 'work':     return 'WORK'
-    case 'rest':     return 'REST'
-    case 'warmup':   return 'WARM UP'
-    case 'cooldown': return 'COOL DOWN'
+    case 'work':     return t('common.work').toUpperCase()
+    case 'rest':     return t('common.rest').toUpperCase()
+    case 'warmup':   return t('common.warmup').toUpperCase()
+    case 'cooldown': return t('common.cooldown').toUpperCase()
   }
 }
 
 function liveActivityPhaseName(phase: PhaseType): string {
   switch (phase) {
-    case 'work':     return 'Work'
-    case 'rest':     return 'Rest'
-    case 'warmup':   return 'Warm Up'
-    case 'cooldown': return 'Cool Down'
+    case 'work':     return t('common.work')
+    case 'rest':     return t('common.rest')
+    case 'warmup':   return t('common.warmup')
+    case 'cooldown': return t('common.cooldown')
   }
 }
 
@@ -108,7 +109,7 @@ function formatCountdown(seconds: number): string {
 }
 
 function describeStep(phase: PhaseType, countdown: number, status: 'running' | 'paused'): string {
-  const prefix = status === 'paused' ? 'Paused' : phaseLabel(phase)
+  const prefix = status === 'paused' ? t('common.paused') : phaseLabel(phase)
   return `${prefix}  ·  ${formatCountdown(countdown)}`
 }
 

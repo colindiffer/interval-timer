@@ -13,6 +13,7 @@ import { HistoryEntry } from '../types'
 import { getHistory } from '../data/storage'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, Radius, useColors } from '../theme'
+import { formatLocalizedDate, t } from '../i18n'
 
 interface Stats {
   totalSessions: number
@@ -57,13 +58,15 @@ function groupByWeek(entries: HistoryEntry[]): GroupedHistory[] {
     const d = new Date(entry.timestamp)
     let label: string
     if (d >= startOfThisWeek) {
-      label = 'THIS WEEK'
+      label = t('history.thisWeek')
     } else if (d >= startOfLastWeek) {
-      label = 'LAST WEEK'
+      label = t('history.lastWeek')
     } else {
       const weekStart = new Date(d)
       weekStart.setDate(d.getDate() - d.getDay())
-      label = weekStart.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) + ' week'
+      label = t('history.weekOf', {
+        date: weekStart.toLocaleDateString(undefined, { day: 'numeric', month: 'short' }),
+      })
     }
     if (!groups[label]) groups[label] = []
     groups[label].push(entry)
@@ -73,18 +76,17 @@ function groupByWeek(entries: HistoryEntry[]): GroupedHistory[] {
 }
 
 function formatDate(ts: number): string {
-  const d = new Date(ts)
   const diffDays = Math.floor((Date.now() - ts) / 86400000)
-  if (diffDays === 0) return 'Today'
-  if (diffDays === 1) return 'Yesterday'
-  return d.toLocaleDateString('en-GB', { weekday: 'short', day: 'numeric', month: 'short' })
+  if (diffDays === 0) return t('common.today')
+  if (diffDays === 1) return t('common.yesterday')
+  return formatLocalizedDate(ts, { weekday: 'short', day: 'numeric', month: 'short' })
 }
 
 function formatDuration(seconds: number): string {
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
-  if (m === 0) return `${s}s`
-  return `${m} min`
+  if (m === 0) return t('common.secondsShort', { count: s })
+  return t('common.minutesShort', { count: m })
 }
 
 export default function HistoryScreen({ navigation }: Props) {
@@ -106,17 +108,17 @@ export default function HistoryScreen({ navigation }: Props) {
     <View style={styles.statsRow}>
       <View style={styles.statCard}>
         <Text style={styles.statValue}>{stats.totalSessions}</Text>
-        <Text style={styles.statLabel}>Workouts</Text>
+        <Text style={styles.statLabel}>{t('history.workouts')}</Text>
       </View>
       <View style={styles.statDivider} />
       <View style={styles.statCard}>
         <Text style={styles.statValue}>{stats.totalMinutes}</Text>
-        <Text style={styles.statLabel}>Minutes</Text>
+        <Text style={styles.statLabel}>{t('history.minutes')}</Text>
       </View>
       <View style={styles.statDivider} />
       <View style={styles.statCard}>
         <Text style={styles.statValue}>{stats.streak}</Text>
-        <Text style={styles.statLabel}>Day streak</Text>
+        <Text style={styles.statLabel}>{t('history.dayStreak')}</Text>
       </View>
     </View>
   )
@@ -131,9 +133,9 @@ export default function HistoryScreen({ navigation }: Props) {
         <Text style={styles.createPlus}>+</Text>
       </View>
       <View style={styles.createInfo}>
-        <Text style={styles.createEyebrow}>QUICK START</Text>
-        <Text style={styles.createLabel}>New workout</Text>
-        <Text style={styles.createSub}>Build a custom session and save it to your library.</Text>
+        <Text style={styles.createEyebrow}>{t('common.quickStart')}</Text>
+        <Text style={styles.createLabel}>{t('common.newWorkout')}</Text>
+        <Text style={styles.createSub}>{t('common.buildCustomSession')}</Text>
       </View>
     </TouchableOpacity>
   )
@@ -143,13 +145,13 @@ export default function HistoryScreen({ navigation }: Props) {
       <SafeAreaView style={styles.root} edges={['top']}>
         <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
           <View style={styles.header}>
-            <Text style={styles.title}>History</Text>
+            <Text style={styles.title}>{t('nav.history')}</Text>
           </View>
           {StatsBar}
           {QuickStart}
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>No workouts yet.</Text>
-            <Text style={styles.emptySubtext}>Your recent sessions will appear here.</Text>
+            <Text style={styles.emptyText}>{t('history.noWorkoutsYet')}</Text>
+            <Text style={styles.emptySubtext}>{t('history.recentSessions')}</Text>
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -160,7 +162,7 @@ export default function HistoryScreen({ navigation }: Props) {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>History</Text>
+          <Text style={styles.title}>{t('nav.history')}</Text>
         </View>
 
         {StatsBar}
@@ -178,12 +180,12 @@ export default function HistoryScreen({ navigation }: Props) {
                 >
                   <View style={styles.rowInfo}>
                     {entry.completed ? (
-                      <Text style={styles.completedLabel}>Completed</Text>
+                      <Text style={styles.completedLabel}>{t('history.completed')}</Text>
                     ) : null}
                     <Text style={styles.rowName} numberOfLines={1}>{entry.workoutName}</Text>
                     <Text style={styles.rowMeta}>
                       {formatDate(entry.timestamp)} · {formatDuration(entry.durationSeconds)}
-                      {!entry.completed ? ' · Stopped early' : ''}
+                      {!entry.completed ? ` · ${t('history.stoppedEarly')}` : ''}
                     </Text>
                   </View>
                 </TouchableOpacity>

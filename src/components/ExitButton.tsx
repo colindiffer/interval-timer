@@ -1,6 +1,7 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { FontSize, FontWeight, Radius } from '../theme'
+import { t } from '../i18n'
 
 interface Props {
   onExit: () => void
@@ -11,7 +12,7 @@ export default function ExitButton({ onExit }: Props) {
     <Pressable onPress={onExit} style={styles.wrapper}>
       {({ pressed }) => (
         <View style={[styles.btn, pressed && styles.btnPressed]}>
-          <Text style={[styles.label, pressed && styles.labelPressed]}>Exit workout</Text>
+          <Text style={[styles.label, pressed && styles.labelPressed]}>{t('workout.exit')}</Text>
         </View>
       )}
     </Pressable>

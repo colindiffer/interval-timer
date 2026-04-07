@@ -20,11 +20,13 @@ import WorkoutCard from '../components/WorkoutCard'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, useColors } from '../theme'
 import { useAuth } from '../context/AuthContext'
+import { formatRelativeDate, t } from '../i18n'
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Library'>,
   NativeStackScreenProps<RootStackParamList>
 >
+type MenuAction = 'toggle-favourite' | 'duplicate' | 'edit' | 'delete'
 
 export default function LibraryScreen({ navigation }: Props) {
   const C = useColors()
@@ -75,34 +77,33 @@ export default function LibraryScreen({ navigation }: Props) {
 
   const showMoreOptions = (workout: Workout) => setMenuWorkout(workout)
 
-  const handleMoreAction = async (workout: Workout, action: string) => {
+  const handleMoreAction = async (workout: Workout, action: MenuAction) => {
     setMenuWorkout(null)
 
     switch (action) {
-      case 'Add to favourites':
-      case 'Remove from favourites':
+      case 'toggle-favourite':
         await handleFavourite(workout.id)
         break
 
-      case 'Duplicate':
+      case 'duplicate':
         navigation.navigate('WorkoutBuilder', {
           duplicateFromId: workout.id,
-          duplicateName: `${workout.name} (copy)`,
+          duplicateName: `${workout.name} (${t('library.copySuffix')})`,
         })
         break
 
-      case 'Edit':
+      case 'edit':
         navigation.navigate('WorkoutBuilder', { workoutId: workout.id })
         break
 
-      case 'Delete':
+      case 'delete':
         Alert.alert(
-          `Delete "${workout.name}"?`,
-          'This cannot be undone.',
+          t('library.deleteConfirmTitle', { name: workout.name }),
+          t('library.deleteConfirmBody'),
           [
-            { text: 'Cancel', style: 'cancel' },
+            { text: t('common.cancel'), style: 'cancel' },
             {
-              text: 'Delete',
+              text: t('library.delete'),
               style: 'destructive',
               onPress: async () => {
                 await deleteWorkout(workout.id)
@@ -122,7 +123,7 @@ export default function LibraryScreen({ navigation }: Props) {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-<Text style={styles.title}>Library</Text>
+          <Text style={styles.title}>{t('nav.library')}</Text>
         </View>
 
         <TouchableOpacity
@@ -134,15 +135,15 @@ export default function LibraryScreen({ navigation }: Props) {
             <Text style={styles.createPlus}>+</Text>
           </View>
           <View style={styles.createInfo}>
-            <Text style={styles.createEyebrow}>QUICK START</Text>
-            <Text style={styles.createLabel}>New workout</Text>
-            <Text style={styles.createSub}>Build a custom session and save it to your library.</Text>
+            <Text style={styles.createEyebrow}>{t('common.quickStart')}</Text>
+            <Text style={styles.createLabel}>{t('common.newWorkout')}</Text>
+            <Text style={styles.createSub}>{t('common.buildCustomSession')}</Text>
           </View>
         </TouchableOpacity>
 
         {favouriteWorkouts.length > 0 ? (
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>FAVOURITES</Text>
+            <Text style={styles.sectionTitle}>{t('common.favourites')}</Text>
             {favouriteWorkouts.map((workout, index) => (
               <React.Fragment key={workout.id}>
                 <WorkoutCard
@@ -160,11 +161,11 @@ export default function LibraryScreen({ navigation }: Props) {
         ) : null}
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>MY WORKOUTS</Text>
+          <Text style={styles.sectionTitle}>{t('common.myWorkouts')}</Text>
           {nonFavouriteWorkouts.length === 0 && userWorkouts.length === 0 ? (
             <View style={styles.emptyCard}>
-              <Text style={styles.emptyTitle}>No saved workouts yet.</Text>
-              <Text style={styles.emptyText}>Create one from the Create tab and it will appear here.</Text>
+              <Text style={styles.emptyTitle}>{t('library.noSavedWorkouts')}</Text>
+              <Text style={styles.emptyText}>{t('library.createOneFromTab')}</Text>
             </View>
           ) : (
             nonFavouriteWorkouts.map((workout, index) => (
@@ -195,43 +196,43 @@ export default function LibraryScreen({ navigation }: Props) {
             {menuWorkout ? (
               <>
                 <Text style={styles.menuTitle} numberOfLines={1}>{menuWorkout.name}</Text>
-                <Text style={styles.menuSubtitle}>Choose an action</Text>
+                <Text style={styles.menuSubtitle}>{t('library.chooseAction')}</Text>
 
                 <TouchableOpacity
                   style={styles.menuRow}
                   activeOpacity={0.7}
                   onPress={() => handleMoreAction(
                     menuWorkout,
-                    favouriteIds.includes(menuWorkout.id) ? 'Remove from favourites' : 'Add to favourites',
+                    'toggle-favourite',
                   )}
                 >
                   <Text style={styles.menuRowText}>
-                    {favouriteIds.includes(menuWorkout.id) ? 'Remove from favourites' : 'Add to favourites'}
+                    {favouriteIds.includes(menuWorkout.id) ? t('library.removeFromFavourites') : t('library.addToFavourites')}
                   </Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.menuRow}
                   activeOpacity={0.7}
-                  onPress={() => handleMoreAction(menuWorkout, 'Duplicate')}
+                  onPress={() => handleMoreAction(menuWorkout, 'duplicate')}
                 >
-                  <Text style={styles.menuRowText}>Duplicate</Text>
+                  <Text style={styles.menuRowText}>{t('library.duplicate')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={styles.menuRow}
                   activeOpacity={0.7}
-                  onPress={() => handleMoreAction(menuWorkout, 'Edit')}
+                  onPress={() => handleMoreAction(menuWorkout, 'edit')}
                 >
-                  <Text style={styles.menuRowText}>Edit</Text>
+                  <Text style={styles.menuRowText}>{t('library.edit')}</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity
                   style={[styles.menuRow, styles.menuRowDanger]}
                   activeOpacity={0.7}
-                  onPress={() => handleMoreAction(menuWorkout, 'Delete')}
+                  onPress={() => handleMoreAction(menuWorkout, 'delete')}
                 >
-                  <Text style={styles.menuRowDangerText}>Delete</Text>
+                  <Text style={styles.menuRowDangerText}>{t('library.delete')}</Text>
                 </TouchableOpacity>
               </>
             ) : null}
@@ -243,13 +244,7 @@ export default function LibraryScreen({ navigation }: Props) {
 }
 
 function relativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp
-  const days = Math.floor(diff / 86400000)
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Yesterday'
-  if (days < 7) return `${days} days ago`
-  if (days < 14) return 'Last week'
-  return `${Math.floor(days / 7)} weeks ago`
+  return formatRelativeDate(timestamp)
 }
 
 function createStyles(C: ReturnType<typeof useColors>) {

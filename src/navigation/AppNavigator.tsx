@@ -14,6 +14,7 @@ import HistoryScreen        from '../screens/HistoryScreen'
 import SettingsScreen       from '../screens/SettingsScreen'
 import ActiveWorkoutScreen  from '../screens/ActiveWorkoutScreen'
 import WorkoutBuilderScreen from '../screens/WorkoutBuilderScreen'
+import { t } from '../i18n'
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 const Tab   = createBottomTabNavigator<TabParamList>()
@@ -89,10 +90,10 @@ function Tabs() {
         },
       })}
     >
-      <Tab.Screen name="Library"  component={LibraryScreen}  />
-      <Tab.Screen name="Create"   component={CreateScreen}   />
-      <Tab.Screen name="History"  component={HistoryScreen}  />
-      <Tab.Screen name="Settings" component={SettingsScreen} />
+      <Tab.Screen name="Library"  component={LibraryScreen} options={{ tabBarLabel: t('nav.library') }} />
+      <Tab.Screen name="Create"   component={CreateScreen}  options={{ tabBarLabel: t('nav.create') }} />
+      <Tab.Screen name="History"  component={HistoryScreen} options={{ tabBarLabel: t('nav.history') }} />
+      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('nav.settings') }} />
     </Tab.Navigator>
   )
 }

@@ -13,11 +13,12 @@ import { saveWorkoutToCloud } from '../data/syncService'
 import { Spacing, Radius, FontSize, FontWeight, useColors, PHASE_COLOR_OPTIONS } from '../theme'
 import { cuePlayer } from '../audio/cuePlayer'
 import { useAuth } from '../context/AuthContext'
+import { t } from '../i18n'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutBuilder'>
 
 function formatTime(seconds: number): string {
-  if (seconds === 0) return 'Off'
+  if (seconds === 0) return t('builder.off')
   const m = Math.floor(seconds / 60)
   const s = seconds % 60
   if (m === 0) return `${s}s`
@@ -93,17 +94,17 @@ function TimePicker({ visible, label, value, allowOff, onClose, onConfirm }: Tim
         <View style={pickerStyles.sheet}>
           <View style={pickerStyles.topBar}>
             <TouchableOpacity onPress={onClose}>
-              <Text style={pickerStyles.cancel}>Cancel</Text>
+              <Text style={pickerStyles.cancel}>{t('common.cancel')}</Text>
             </TouchableOpacity>
             <Text style={pickerStyles.title}>{label}</Text>
             <TouchableOpacity onPress={() => onConfirm(total)}>
-              <Text style={pickerStyles.confirm}>Done</Text>
+              <Text style={pickerStyles.confirm}>{t('common.done')}</Text>
             </TouchableOpacity>
           </View>
 
           <View style={pickerStyles.columns}>
             <View style={pickerStyles.col}>
-              <Text style={pickerStyles.colLabel}>Minutes</Text>
+              <Text style={pickerStyles.colLabel}>{t('builder.minutes')}</Text>
               <FlatList
                 data={MINUTE_OPTIONS}
                 keyExtractor={String}
@@ -122,7 +123,7 @@ function TimePicker({ visible, label, value, allowOff, onClose, onConfirm }: Tim
               />
             </View>
             <View style={pickerStyles.col}>
-              <Text style={pickerStyles.colLabel}>Seconds</Text>
+              <Text style={pickerStyles.colLabel}>{t('builder.seconds')}</Text>
               <FlatList
                 data={SECOND_OPTIONS}
                 keyExtractor={String}
@@ -144,7 +145,7 @@ function TimePicker({ visible, label, value, allowOff, onClose, onConfirm }: Tim
 
           {allowOff ? (
             <TouchableOpacity style={pickerStyles.offBtn} onPress={() => onConfirm(0)}>
-              <Text style={pickerStyles.offBtnText}>Turn off</Text>
+              <Text style={pickerStyles.offBtnText}>{t('builder.turnOff')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>
@@ -338,11 +339,13 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
   const pickerLabel = (() => {
     const field = picker.field
     if (!field) return ''
-    if (field === 'workDuration') return 'Work interval'
-    if (field === 'restDuration') return 'Rest interval'
-    if (field === 'warmupDuration') return 'Warmup'
-    if (field === 'cooldownDuration') return 'Cooldown'
-    return field.type === 'intervalWork' ? `Set ${field.index + 1} work` : `Set ${field.index + 1} rest`
+    if (field === 'workDuration') return t('builder.workInterval')
+    if (field === 'restDuration') return t('builder.restInterval')
+    if (field === 'warmupDuration') return t('builder.warmup')
+    if (field === 'cooldownDuration') return t('builder.cooldown')
+    return field.type === 'intervalWork'
+      ? t('builder.setWorkLabel', { count: field.index + 1 })
+      : t('builder.setRestLabel', { count: field.index + 1 })
   })()
 
   const allowPickerOff = (() => {
@@ -363,39 +366,39 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <View style={styles.navBar}>
           <TouchableOpacity onPress={() => navigation.goBack()}>
-            <Text style={styles.navCancel}>Cancel</Text>
+            <Text style={styles.navCancel}>{t('common.cancel')}</Text>
           </TouchableOpacity>
-          <Text style={styles.navTitle}>{isEditingExisting || duplicateFromId ? 'Edit Workout' : 'New Workout'}</Text>
+          <Text style={styles.navTitle}>{isEditingExisting || duplicateFromId ? t('builder.editWorkout') : t('builder.newWorkout')}</Text>
           <TouchableOpacity onPress={() => handleSave(false)}>
-            <Text style={styles.navSave}>Save</Text>
+            <Text style={styles.navSave}>{t('common.save')}</Text>
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>NAME</Text>
+        <Text style={styles.label}>{t('builder.name')}</Text>
         <TextInput
           style={[styles.nameInput, nameError && styles.nameInputError]}
           value={form.name}
           onChangeText={value => { set({ name: value }); setNameError(false) }}
-          placeholder="Workout name"
+          placeholder={t('builder.workoutName')}
           placeholderTextColor={C.textTertiary}
           maxLength={40}
           returnKeyType="done"
           selectTextOnFocus
         />
 
-        <Text style={styles.label}>WORK INTERVAL</Text>
+        <Text style={styles.label}>{t('builder.workIntervalLabel')}</Text>
         <TouchableOpacity style={styles.timeRow} onPress={() => openPicker('workDuration')}>
           <Text style={styles.timeValue}>{formatTime(form.workDuration ?? 0)}</Text>
           <Text style={styles.timeChevron}>›</Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>REST INTERVAL</Text>
+        <Text style={styles.label}>{t('builder.restIntervalLabel')}</Text>
         <TouchableOpacity style={styles.timeRow} onPress={() => openPicker('restDuration')}>
           <Text style={styles.timeValue}>{formatTime(form.restDuration ?? 0)}</Text>
           <Text style={styles.timeChevron}>›</Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>REPEATS</Text>
+        <Text style={styles.label}>{t('builder.repeats')}</Text>
         <View style={styles.repRow}>
           <TouchableOpacity
             style={styles.repBtn}
@@ -414,27 +417,27 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
           </TouchableOpacity>
         </View>
         {advancedEnabled ? (
-          <Text style={styles.helperText}>Advanced mode controls reps from the custom set list below.</Text>
+          <Text style={styles.helperText}>{t('builder.advancedRepsHelp')}</Text>
         ) : null}
 
-        <Text style={styles.label}>WARMUP (optional)</Text>
+        <Text style={styles.label}>{t('builder.warmupOptional')}</Text>
         <TouchableOpacity style={styles.timeRow} onPress={() => openPicker('warmupDuration')}>
           <Text style={styles.timeValue}>{formatTime(form.warmupDuration ?? 0)}</Text>
           <Text style={styles.timeChevron}>›</Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>COOLDOWN (optional)</Text>
+        <Text style={styles.label}>{t('builder.cooldownOptional')}</Text>
         <TouchableOpacity style={styles.timeRow} onPress={() => openPicker('cooldownDuration')}>
           <Text style={styles.timeValue}>{formatTime(form.cooldownDuration ?? 0)}</Text>
           <Text style={styles.timeChevron}>›</Text>
         </TouchableOpacity>
 
-        <Text style={styles.label}>REST OPTIONS</Text>
+        <Text style={styles.label}>{t('builder.restOptions')}</Text>
         <View style={styles.advancedCard}>
           <View style={styles.advancedHeader}>
             <View style={styles.advancedText}>
-              <Text style={styles.advancedTitle}>Skip last rest</Text>
-              <Text style={styles.advancedSubtext}>Finish on the final work set instead of resting once more.</Text>
+              <Text style={styles.advancedTitle}>{t('builder.skipLastRest')}</Text>
+              <Text style={styles.advancedSubtext}>{t('builder.skipLastRestHelp')}</Text>
             </View>
             <Switch
               value={shouldSkipLastRest(form)}
@@ -446,12 +449,12 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
           </View>
         </View>
 
-        <Text style={styles.label}>ADVANCED SETTINGS</Text>
+        <Text style={styles.label}>{t('builder.advancedSettings')}</Text>
         <View style={styles.advancedCard}>
           <View style={styles.advancedHeader}>
             <View style={styles.advancedText}>
-              <Text style={styles.advancedTitle}>Advanced settings</Text>
-              <Text style={styles.advancedSubtext}>Per-set timings, custom colours and sound.</Text>
+              <Text style={styles.advancedTitle}>{t('builder.advancedSettingsTitle')}</Text>
+              <Text style={styles.advancedSubtext}>{t('builder.advancedSettingsHelp')}</Text>
             </View>
             <Switch
               value={advancedEnabled}
@@ -467,10 +470,10 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
               {previewIntervals.map((interval, index) => (
                 <View key={index} style={styles.intervalCard}>
                   <View style={styles.intervalTopRow}>
-                    <Text style={styles.intervalTitle}>Set {index + 1}</Text>
+                    <Text style={styles.intervalTitle}>{t('builder.setLabel', { count: index + 1 })}</Text>
                     {previewIntervals.length > 1 ? (
                       <TouchableOpacity onPress={() => removeInterval(index)} activeOpacity={0.7}>
-                        <Text style={styles.removeText}>Remove</Text>
+                        <Text style={styles.removeText}>{t('builder.remove')}</Text>
                       </TouchableOpacity>
                     ) : null}
                   </View>
@@ -479,7 +482,7 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
                     style={styles.intervalRow}
                     onPress={() => openPicker({ type: 'intervalWork', index })}
                   >
-                    <Text style={styles.intervalLabel}>Work</Text>
+                    <Text style={styles.intervalLabel}>{t('common.work')}</Text>
                     <Text style={styles.intervalValue}>{formatTime(interval.workDuration)}</Text>
                   </TouchableOpacity>
 
@@ -487,18 +490,18 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
                     style={styles.intervalRow}
                     onPress={() => openPicker({ type: 'intervalRest', index })}
                   >
-                    <Text style={styles.intervalLabel}>Rest</Text>
+                    <Text style={styles.intervalLabel}>{t('common.rest')}</Text>
                     <Text style={styles.intervalValue}>{formatTime(interval.restDuration)}</Text>
                   </TouchableOpacity>
                 </View>
               ))}
 
               <TouchableOpacity style={styles.addSetBtn} onPress={addInterval}>
-                <Text style={styles.addSetText}>Add set</Text>
+                <Text style={styles.addSetText}>{t('builder.addSet')}</Text>
               </TouchableOpacity>
 
               <View style={styles.colorSection}>
-                <Text style={styles.colorSectionLabel}>Work colour</Text>
+                <Text style={styles.colorSectionLabel}>{t('builder.workColor')}</Text>
                 <View style={styles.colorSwatches}>
                   {PHASE_COLOR_OPTIONS.map(color => {
                     const active = (form.workColor ?? null) === color
@@ -517,7 +520,7 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
               </View>
 
               <View style={styles.colorSection}>
-                <Text style={styles.colorSectionLabel}>Rest colour</Text>
+                <Text style={styles.colorSectionLabel}>{t('builder.restColor')}</Text>
                 <View style={styles.colorSwatches}>
                   {PHASE_COLOR_OPTIONS.map(color => {
                     const active = (form.restColor ?? null) === color
@@ -536,11 +539,11 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
               </View>
 
               <View style={styles.soundSection}>
-                <Text style={styles.colorSectionLabel}>Sound override</Text>
+                <Text style={styles.colorSectionLabel}>{t('builder.soundOverride')}</Text>
                 <View style={styles.soundPills}>
                   {([null, 'beep', 'bell', 'gong', 'whistle'] as const).map(theme => {
                     const active = (form.soundTheme ?? null) === theme
-                    const label = theme === null ? 'Default' : theme.charAt(0).toUpperCase() + theme.slice(1)
+                    const label = theme === null ? t('common.default') : t(`settings.soundTheme.${theme}`)
                     return (
                       <TouchableOpacity
                         key={label}
@@ -560,8 +563,8 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
 
               <View style={styles.voiceRow}>
                 <View style={styles.advancedText}>
-                  <Text style={styles.colorSectionLabel}>Voice cues</Text>
-                  <Text style={styles.advancedSubtext}>Count down and announce phases for this workout.</Text>
+                  <Text style={styles.colorSectionLabel}>{t('builder.voiceCues')}</Text>
+                  <Text style={styles.advancedSubtext}>{t('builder.voiceCuesHelp')}</Text>
                 </View>
                 <Switch
                   value={form.voiceCues ?? false}
@@ -576,35 +579,41 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
         </View>
 
         <View style={styles.preview}>
-          <Text style={styles.previewTitle}>PREVIEW</Text>
+          <Text style={styles.previewTitle}>{t('builder.preview')}</Text>
           <Text style={styles.previewLine}>
-            {form.warmupDuration ? `Warmup: ${formatTime(form.warmupDuration)}` : 'Warmup: —'}
+            {t('builder.warmupPreview', { value: form.warmupDuration ? formatTime(form.warmupDuration) : '—' })}
           </Text>
           {advancedEnabled ? (
             <>
-              <Text style={styles.previewLine}>Custom sets: {previewIntervals.length}</Text>
+              <Text style={styles.previewLine}>{t('builder.customSetsPreview', { count: previewIntervals.length })}</Text>
               <Text style={styles.previewLine}>
-                First set: {formatTime(previewIntervals[0]?.workDuration ?? 0)} work / {formatTime(previewIntervals[0]?.restDuration ?? 0)} rest
+                {t('builder.firstSetPreview', {
+                  work: formatTime(previewIntervals[0]?.workDuration ?? 0),
+                  rest: formatTime(previewIntervals[0]?.restDuration ?? 0),
+                })}
               </Text>
             </>
           ) : (
             <>
               <Text style={styles.previewLine}>
-                {formatTime(form.workDuration ?? 0)} work / {formatTime(form.restDuration ?? 0)} rest
+                {t('builder.workRestPreview', {
+                  work: formatTime(form.workDuration ?? 0),
+                  rest: formatTime(form.restDuration ?? 0),
+                })}
               </Text>
               <Text style={styles.previewLine}>
-                × {form.reps ?? 1} rep{(form.reps ?? 1) !== 1 ? 's' : ''}
+                {t('builder.repsPreview', { count: form.reps ?? 1 })}
               </Text>
             </>
           )}
           {form.cooldownDuration ? (
-            <Text style={styles.previewLine}>Cooldown: {formatTime(form.cooldownDuration)}</Text>
+            <Text style={styles.previewLine}>{t('builder.cooldownPreview', { value: formatTime(form.cooldownDuration) })}</Text>
           ) : null}
-          <Text style={[styles.previewLine, styles.previewTotal]}>Total: ~{total} min</Text>
+          <Text style={[styles.previewLine, styles.previewTotal]}>{t('builder.totalPreview', { total })}</Text>
         </View>
 
         <TouchableOpacity style={styles.startBtn} onPress={() => handleSave(true)}>
-          <Text style={styles.startBtnText}>Start now</Text>
+          <Text style={styles.startBtnText}>{t('builder.startNow')}</Text>
         </TouchableOpacity>
       </ScrollView>
 

@@ -26,15 +26,9 @@ import {
 import {
   isLiveActivitySupported, startLiveActivity, updateLiveActivity, endLiveActivity,
 } from '../../modules/live-activity'
+import { t } from '../i18n'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>
-
-const NEXT_LABELS: Record<string, string> = {
-  work:     'Next: RUN',
-  rest:     'Next: REST',
-  warmup:   'Next: WARM UP',
-  cooldown: 'Next: COOL DOWN',
-}
 
 /** Mirrors TimerEngine.buildSequence — produces a plain serialisable sequence. */
 function buildBgSequence(workout: Workout): BgPhaseStep[] {
@@ -110,11 +104,20 @@ function mergeBgState(previous: TimerState | null, bgState: BgTimerState): Timer
   }
 }
 
-const PHASE_LABELS: Record<string, string> = {
-  work:     'Work',
-  rest:     'Rest',
-  warmup:   'Warm Up',
-  cooldown: 'Cool Down',
+function phaseLabel(phase: string): string {
+  if (phase === 'work') return t('common.work')
+  if (phase === 'rest') return t('common.rest')
+  if (phase === 'warmup') return t('common.warmup')
+  if (phase === 'cooldown') return t('common.cooldown')
+  return phase
+}
+
+function nextPhaseLabel(phase: string): string {
+  if (phase === 'work') return t('workout.nextWork')
+  if (phase === 'rest') return t('workout.nextRest')
+  if (phase === 'warmup') return t('workout.nextWarmup')
+  if (phase === 'cooldown') return t('workout.nextCooldown')
+  return phase
 }
 
 export default function ActiveWorkoutScreen({ route, navigation }: Props) {
@@ -321,7 +324,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
           startLiveActivity({
             workoutName: state.workoutName,
             initialState: {
-              phaseName: PHASE_LABELS[state.currentPhase] ?? state.currentPhase,
+              phaseName: phaseLabel(state.currentPhase),
               phaseColorHex: phaseColor,
               endTime: (Date.now() + state.countdown * 1000) / 1000,
               phaseIndex: state.currentRep > 0 ? state.currentRep - 1 : 0,
@@ -356,7 +359,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
         const phaseColor = currentSettings.phaseColors[phase as keyof typeof currentSettings.phaseColors]
           ?? currentSettings.phaseColors.work
         updateLiveActivity(liveActivityIdRef.current, {
-          phaseName: PHASE_LABELS[phase] ?? phase,
+          phaseName: phaseLabel(phase),
           phaseColorHex: phaseColor,
           endTime: (Date.now() + engineState.countdown * 1000) / 1000,
           phaseIndex: engineState.currentRep > 0 ? engineState.currentRep - 1 : 0,
@@ -459,7 +462,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
         const phaseColor = currentSettings.phaseColors[state.currentPhase as keyof typeof currentSettings.phaseColors]
           ?? currentSettings.phaseColors.work
         updateLiveActivity(liveActivityIdRef.current, {
-          phaseName: PHASE_LABELS[state.currentPhase] ?? state.currentPhase,
+          phaseName: phaseLabel(state.currentPhase),
           phaseColorHex: phaseColor,
           endTime: (Date.now() + state.countdown * 1000) / 1000,
           phaseIndex: state.currentRep > 0 ? state.currentRep - 1 : 0,
@@ -479,7 +482,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
         const phaseColor = currentSettings.phaseColors[state.currentPhase as keyof typeof currentSettings.phaseColors]
           ?? currentSettings.phaseColors.work
         updateLiveActivity(liveActivityIdRef.current, {
-          phaseName: PHASE_LABELS[state.currentPhase] ?? state.currentPhase,
+          phaseName: phaseLabel(state.currentPhase),
           phaseColorHex: phaseColor,
           endTime: (Date.now() + state.countdown * 1000) / 1000,
           phaseIndex: state.currentRep > 0 ? state.currentRep - 1 : 0,
@@ -547,14 +550,14 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
           <Text style={styles.doneName}>{timerState.workoutName}</Text>
           {timerState.totalReps > 1 ? (
             <Text style={styles.doneStats}>
-              {timerState.totalReps} reps complete
+              {t('workout.repsComplete', { count: timerState.totalReps })}
             </Text>
           ) : null}
           <Text style={styles.doneTime}>
             {formatTotal(timerState.elapsedTotal)}
           </Text>
           <TouchableOpacity style={styles.doneBtn} onPress={handleStartAgain}>
-            <Text style={styles.doneBtnText}>Start again</Text>
+            <Text style={styles.doneBtnText}>{t('workout.startAgain')}</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.doneSecondaryBtn}
@@ -563,7 +566,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
               navigation.goBack()
             }}
           >
-            <Text style={styles.doneSecondaryText}>Back to library</Text>
+            <Text style={styles.doneSecondaryText}>{t('workout.backToLibrary')}</Text>
           </TouchableOpacity>
         </View>
       </SafeAreaView>
@@ -606,7 +609,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
               hitSlop={8}
             >
               <Text style={styles.pauseBtnText}>
-                {timerState.status === 'paused' ? 'Resume' : 'Pause'}
+                {timerState.status === 'paused' ? t('workout.resume') : t('workout.pause')}
               </Text>
             </TouchableOpacity>
           ) : (
@@ -632,18 +635,18 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
           {timerState.nextPhase ? (
             <>
               <Text style={styles.nextLabel}>
-                {NEXT_LABELS[timerState.nextPhase]}
+                {nextPhaseLabel(timerState.nextPhase)}
               </Text>
               <Text style={styles.nextDuration}>
                 {formatDuration(timerState.nextPhaseDuration)}
               </Text>
             </>
           ) : (
-            <Text style={styles.nextLabel}>Last phase</Text>
+            <Text style={styles.nextLabel}>{t('workout.lastPhase')}</Text>
           )}
           {canSkip ? (
             <TouchableOpacity style={styles.skipBtn} onPress={() => void handleSkip()} activeOpacity={0.7}>
-              <Text style={styles.skipBtnText}>Skip ahead</Text>
+              <Text style={styles.skipBtnText}>{t('workout.skipAhead')}</Text>
             </TouchableOpacity>
           ) : null}
         </View>

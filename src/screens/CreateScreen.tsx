@@ -14,6 +14,7 @@ import { getWorkouts, getFavourites, toggleFavourite, getHistory } from '../data
 import WorkoutCard from '../components/WorkoutCard'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, useColors } from '../theme'
+import { formatRelativeDate, t } from '../i18n'
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Create'>,
@@ -56,7 +57,7 @@ export default function CreateScreen({ navigation }: Props) {
     <SafeAreaView style={styles.root} edges={['top']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.title}>Create</Text>
+          <Text style={styles.title}>{t('nav.create')}</Text>
         </View>
 
         <TouchableOpacity
@@ -68,14 +69,14 @@ export default function CreateScreen({ navigation }: Props) {
             <Text style={styles.createPlus}>+</Text>
           </View>
           <View style={styles.createInfo}>
-            <Text style={styles.createEyebrow}>QUICK START</Text>
-            <Text style={styles.createLabel}>New workout</Text>
-            <Text style={styles.createSub}>Build a custom session and save it to your library.</Text>
+            <Text style={styles.createEyebrow}>{t('common.quickStart')}</Text>
+            <Text style={styles.createLabel}>{t('common.newWorkout')}</Text>
+            <Text style={styles.createSub}>{t('common.buildCustomSession')}</Text>
           </View>
         </TouchableOpacity>
 
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>PRESETS</Text>
+          <Text style={styles.sectionTitle}>{t('common.presets')}</Text>
           {presets.map((workout, index) => (
             <React.Fragment key={workout.id}>
               <WorkoutCard
@@ -96,13 +97,7 @@ export default function CreateScreen({ navigation }: Props) {
 }
 
 function relativeTime(timestamp: number): string {
-  const diff = Date.now() - timestamp
-  const days = Math.floor(diff / 86400000)
-  if (days === 0) return 'Today'
-  if (days === 1) return 'Yesterday'
-  if (days < 7) return `${days} days ago`
-  if (days < 14) return 'Last week'
-  return `${Math.floor(days / 7)} weeks ago`
+  return formatRelativeDate(timestamp)
 }
 
 function createStyles(C: ReturnType<typeof useColors>) {
