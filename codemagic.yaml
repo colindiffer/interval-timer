@@ -14,7 +14,7 @@ workflows:
       cocoapods: default
     scripts:
       - name: Install npm dependencies
-        script: npm install --ignore-scripts
+        script: npm ci --ignore-scripts
 
       - name: Patch RN Firebase iOS podspec
         script: |
@@ -45,13 +45,26 @@ workflows:
           echo "Building workspace: $WORKSPACE scheme: $SCHEME"
           TEAM_ID=$(security find-identity -p codesigning -v | grep -o '([A-Z0-9]\{10\})' | head -1 | tr -d '()')
           echo "Detected Team ID: $TEAM_ID"
-          xcode-project build-ipa \
+          if ! xcode-project build-ipa \
             --workspace "$WORKSPACE" \
             --scheme "$SCHEME" \
             --clean \
             --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$TEAM_ID -allowProvisioningUpdates" \
             --export-xcargs=-allowProvisioningUpdates \
-            --disable-xcpretty
+            --disable-xcpretty; then
+            echo "Build failed. Extracting xcodebuild diagnostics..."
+            LOG_FILE=$(find /tmp/xcodebuild_logs -name "*.log" | sort | tail -1)
+            echo "Using log: $LOG_FILE"
+            if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+              mkdir -p build/ios/diagnostics
+              {
+                echo "Using log: $LOG_FILE"
+                echo
+                grep -n -C 3 " error: |ARCHIVE FAILED|The following build commands failed|Unable to resolve module|CodeSign|Provisioning Profile|No profiles for|requires a provisioning profile" "$LOG_FILE" | tail -400 || true
+              } | tee build/ios/diagnostics/xcode-errors.txt
+            fi
+            exit 1
+          fi
 
     artifacts:
       - build/ios/ipa/*.ipa
