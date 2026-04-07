@@ -61,7 +61,7 @@ workflows:
               {
                 echo "Using log: $LOG_FILE"
                 echo
-                grep -n -C 3 "note:|warning:| error: |ARCHIVE FAILED|The following build commands failed|Unable to resolve module|CodeSign|Provisioning Profile|No profiles for|requires a provisioning profile" "$LOG_FILE" | tail -1200 || true
+                grep -E -n -C 5 "error:|ARCHIVE FAILED|The following build commands failed|Unable to resolve module|CodeSign|Provisioning Profile|No profiles for|requires a provisioning profile" "$LOG_FILE" || true
               } | tee build/ios/diagnostics/xcode-errors.txt
             fi
             exit 1
