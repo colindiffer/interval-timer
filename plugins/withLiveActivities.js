@@ -30,7 +30,6 @@ const withWidgetExtension = (config) => {
     const widgetDir = path.join(platformProjectRoot, widgetName)
     const sourceDir = path.join(projectRoot, 'targets', widgetName)
     const widgetInfoPlistPath = path.join(widgetDir, `${widgetName}-Info.plist`)
-    const widgetEntitlementsPath = path.join(widgetDir, `${widgetName}.entitlements`)
 
     // Copy Swift files from targets/ into ios/IntervalTimerWidget/
     if (!fs.existsSync(widgetDir)) {
@@ -79,19 +78,6 @@ const withWidgetExtension = (config) => {
 `
     )
 
-    ensureFile(
-      widgetEntitlementsPath,
-      `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-<dict>
-  <key>com.apple.developer.live-activities</key>
-  <true/>
-</dict>
-</plist>
-`
-    )
-
     // Check if target already exists
     const existingTarget = xcodeProject.pbxTargetByName(widgetName)
     if (existingTarget) {
@@ -134,7 +120,6 @@ const withWidgetExtension = (config) => {
         config.buildSettings.TARGETED_DEVICE_FAMILY = '"1,2"'
         config.buildSettings.PRODUCT_BUNDLE_IDENTIFIER = widgetBundleId
         config.buildSettings.INFOPLIST_FILE = `${widgetName}/${widgetName}-Info.plist`
-        config.buildSettings.CODE_SIGN_ENTITLEMENTS = `${widgetName}/${widgetName}.entitlements`
         config.buildSettings.SKIP_INSTALL = 'NO'
         config.buildSettings.BUNDLE_LOADER = undefined
       }

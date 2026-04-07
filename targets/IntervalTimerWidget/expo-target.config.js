@@ -3,7 +3,4 @@ module.exports = {
   type: 'widget',
   deploymentTarget: '16.2',
   frameworks: ['SwiftUI', 'ActivityKit', 'WidgetKit'],
-  entitlements: {
-    'com.apple.developer.live-activities': true,
-  },
 };

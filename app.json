@@ -77,10 +77,7 @@
               "appExtensions": [
                 {
                   "targetName": "IntervalTimerWidget",
-                  "bundleIdentifier": "com.differapps.intervaltimer.IntervalTimerWidget",
-                  "entitlements": {
-                    "com.apple.developer.live-activities": true
-                  }
+                  "bundleIdentifier": "com.differapps.intervaltimer.IntervalTimerWidget"
                 }
               ]
             }
