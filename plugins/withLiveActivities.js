@@ -121,7 +121,6 @@ const withWidgetExtension = (config) => {
         config.buildSettings.PRODUCT_BUNDLE_IDENTIFIER = widgetBundleId
         config.buildSettings.INFOPLIST_FILE = `${widgetName}/${widgetName}-Info.plist`
         config.buildSettings.SKIP_INSTALL = 'NO'
-        config.buildSettings.BUNDLE_LOADER = undefined
       }
     }
 
