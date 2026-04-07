@@ -7,8 +7,13 @@ workflows:
       app_store_connect: Codemagic Podcast
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.differapps.intervaltimer
+        provisioning_profiles:
+          - profile: interval_timer_app_store
+            environment_variable: CM_PROFILE_MAIN
+          - profile: intervaltimerwidget2
+            environment_variable: CM_PROFILE_WIDGET
+        certificates:
+          - certificate: timerp12
       node: latest
       xcode: 16.2
       cocoapods: default
@@ -38,19 +43,55 @@ workflows:
       - name: Apply code signing profiles
         script: xcode-project use-profiles
 
+      - name: Force target provisioning profiles
+        script: |
+          PROJECT=$(find ios -name "*.xcodeproj" -maxdepth 1 | head -1)
+          MAIN_TARGET=$(basename "$PROJECT" .xcodeproj)
+          MAIN_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$CM_PROFILE_MAIN")")
+          WIDGET_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$CM_PROFILE_WIDGET")")
+          export PROJECT MAIN_TARGET MAIN_UUID WIDGET_UUID
+          ruby <<'RUBY'
+          require 'xcodeproj'
+
+          project = Xcodeproj::Project.open(ENV.fetch('PROJECT'))
+          target_settings = {
+            ENV.fetch('MAIN_TARGET') => {
+              'PRODUCT_BUNDLE_IDENTIFIER' => 'com.differapps.intervaltimer',
+              'PROVISIONING_PROFILE' => ENV.fetch('MAIN_UUID'),
+            },
+            'IntervalTimerWidget' => {
+              'PRODUCT_BUNDLE_IDENTIFIER' => 'com.differapps.intervaltimer.IntervalTimerWidget',
+              'PROVISIONING_PROFILE' => ENV.fetch('WIDGET_UUID'),
+            },
+          }
+
+          project.targets.each do |target|
+            settings = target_settings[target.name]
+            next unless settings
+
+            target.build_configurations.each do |config|
+              config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+              config.build_settings['DEVELOPMENT_TEAM'] = '25X2WSWQG6'
+              settings.each do |key, value|
+                config.build_settings[key] = value
+              end
+              config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
+            end
+          end
+
+          project.save
+          RUBY
+
       - name: Build IPA
         script: |
           WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           echo "Building workspace: $WORKSPACE scheme: $SCHEME"
-          TEAM_ID=$(security find-identity -p codesigning -v | grep -o '([A-Z0-9]\{10\})' | head -1 | tr -d '()')
-          echo "Detected Team ID: $TEAM_ID"
           if ! xcode-project build-ipa \
             --workspace "$WORKSPACE" \
             --scheme "$SCHEME" \
             --clean \
-            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$TEAM_ID -allowProvisioningUpdates" \
-            --export-xcargs=-allowProvisioningUpdates \
+            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO" \
             --disable-xcpretty; then
             echo "Build failed. Extracting xcodebuild diagnostics..."
             LOG_FILE=$(find /tmp/xcodebuild_logs -name "*.log" | sort | tail -1)
