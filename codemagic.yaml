@@ -47,7 +47,7 @@ workflows:
             --scheme "$SCHEME" \
             --clean \
             --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO CODE_SIGN_STYLE=Automatic DEVELOPMENT_TEAM=$TEAM_ID -allowProvisioningUpdates" \
-            --export-xcargs "-allowProvisioningUpdates" \
+            --export-xcargs=-allowProvisioningUpdates \
             --disable-xcpretty
 
     artifacts:
