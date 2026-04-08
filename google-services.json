@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "703339875432-ftvffd089sq0ifdgic49p92dgumbraab.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.differapps.intervaltimer",
+            "certificate_hash": "75ad094e20a3a48db78dec543b334a592e3fb83a"
+          }
+        },
+        {
           "client_id": "703339875432-i88j8eehudg5haeq1cg4ch973dn497m6.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
