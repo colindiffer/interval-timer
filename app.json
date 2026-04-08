@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "12",
+      "buildNumber": "13",
       "bundleIdentifier": "com.differapps.intervaltimer",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -26,7 +26,7 @@
       }
     },
     "android": {
-      "versionCode": 12,
+      "versionCode": 13,
       "package": "com.differapps.intervaltimer",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
@@ -52,6 +52,7 @@
           "iosUrlScheme": "com.googleusercontent.apps.703339875432-f6pkvovfv2dq4ir78nl608rtguast1rm"
         }
       ],
+      "expo-iap",
       [
         "expo-build-properties",
         {

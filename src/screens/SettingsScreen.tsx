@@ -23,12 +23,13 @@ import {
 import { cuePlayer } from '../audio/cuePlayer'
 import AdBanner from '../components/AdBanner'
 import { useAuth } from '../context/AuthContext'
+import { usePurchases } from '../context/PurchaseContext'
 import Logo from '../components/Logo'
 import { GoogleIcon } from '../components/AuthIcons'
 import { pushToCloud, pullFromCloud } from '../data/syncService'
 import { t, useI18n } from '../i18n'
 
-const APP_VERSION = '1.0.0'
+const APP_VERSION = '1.0.4'
 const FINAL_COUNT_OPTIONS = [0, 3, 5]
 const SOUND_THEMES: SoundThemeId[] = [
   'beep',
@@ -71,6 +72,18 @@ export default function SettingsScreen() {
     getAppleErrorMessage,
     isAppleCancel,
   } = useAuth()
+  const {
+    adFree,
+    loading: purchasesLoading,
+    storeConnected,
+    removeAdsProduct,
+    purchaseBusy,
+    restoreBusy: restoringPurchases,
+    statusMessage: purchaseStatusMessage,
+    statusTone: purchaseStatusTone,
+    buyRemoveAds,
+    restorePurchases,
+  } = usePurchases()
   const [signingIn, setSigningIn]   = useState(false)
   const [authMode, setAuthMode]     = useState<'login' | 'register'>('login')
   const [email, setEmail]           = useState('')
@@ -148,6 +161,16 @@ export default function SettingsScreen() {
     if (mode === t('settings.soundMode.voice')) update({ soundCues: false, voiceCues: true, countdownBeeps: true })
     if (mode === t('settings.soundMode.none')) update({ soundCues: false, voiceCues: false, countdownBeeps: false })
   }
+
+  const removeAdsSummary = adFree
+    ? t('settings.removeAdsOwned')
+    : purchasesLoading
+      ? t('settings.storeLoading')
+      : removeAdsProduct
+        ? t('settings.removeAdsPrice', { price: removeAdsProduct.displayPrice })
+        : storeConnected
+          ? t('settings.purchaseUnavailable')
+          : t('settings.storeUnavailable')
 
   return (
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
@@ -508,10 +531,75 @@ export default function SettingsScreen() {
           ))}
         </View>
 
+        <SectionHeader title={t('settings.premium')} subtitle={t('settings.premiumSubtitle')} />
+        <View style={styles.panel}>
+          <View style={styles.purchaseHeader}>
+            <View style={styles.rowText}>
+              <Text style={styles.rowLabel}>{t('settings.removeAds')}</Text>
+              <Text style={styles.rowDescription}>{t('settings.removeAdsDetails')}</Text>
+            </View>
+            <Text style={styles.purchasePrice}>{removeAdsSummary}</Text>
+          </View>
+          <Divider />
+          <View style={styles.purchaseActionRow}>
+            <TouchableOpacity
+              style={[
+                styles.purchasePrimaryBtn,
+                (purchaseBusy || purchasesLoading || adFree || !removeAdsProduct) && styles.purchaseBtnDisabled,
+              ]}
+              onPress={() => { void buyRemoveAds() }}
+              activeOpacity={0.85}
+              disabled={purchaseBusy || purchasesLoading || adFree || !removeAdsProduct}
+            >
+              {purchaseBusy ? (
+                <ActivityIndicator color={C.accentText} />
+              ) : (
+                <Text style={styles.purchasePrimaryText}>
+                  {adFree
+                    ? t('settings.owned')
+                    : removeAdsProduct
+                      ? t('settings.removeAdsFor', { price: removeAdsProduct.displayPrice })
+                      : t('settings.buyNow')}
+                </Text>
+              )}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[
+                styles.purchaseSecondaryBtn,
+                (restoringPurchases || purchasesLoading || !storeConnected) && styles.purchaseBtnDisabled,
+              ]}
+              onPress={() => { void restorePurchases() }}
+              activeOpacity={0.85}
+              disabled={restoringPurchases || purchasesLoading || !storeConnected}
+            >
+              {restoringPurchases ? (
+                <ActivityIndicator color={C.accent} />
+              ) : (
+                <Text style={styles.purchaseSecondaryText}>{t('settings.restorePurchases')}</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+          {purchaseStatusMessage ? (
+            <>
+              <Divider />
+              <Text
+                style={[
+                  styles.purchaseStatus,
+                  purchaseStatusTone === 'success'
+                    ? styles.purchaseStatusSuccess
+                    : purchaseStatusTone === 'error'
+                      ? styles.purchaseStatusError
+                      : styles.purchaseStatusNeutral,
+                ]}
+              >
+                {purchaseStatusMessage}
+              </Text>
+            </>
+          ) : null}
+        </View>
+
         <SectionHeader title={t('settings.misc')} subtitle={t('settings.miscSubtitle')} />
         <View style={styles.panel}>
-          <LinkRow label={t('settings.bannerAds')} note={t('settings.placeholderOnly')} />
-          <Divider />
           <LinkRow
             label={t('settings.rateApp')}
             onPress={async () => {
@@ -1281,6 +1369,75 @@ function createStyles(C: ReturnType<typeof useColors>) {
     orText: {
       fontSize: FontSize.sm,
       color:    C.textTertiary,
+    },
+    purchaseHeader: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      justifyContent: 'space-between',
+      gap: Spacing.md,
+      paddingVertical: Spacing.md,
+    },
+    purchasePrice: {
+      fontSize: FontSize.md,
+      fontWeight: FontWeight.bold,
+      color: C.accent,
+      textAlign: 'right',
+      maxWidth: '42%',
+    },
+    purchaseActionRow: {
+      flexDirection: 'row',
+      gap: Spacing.sm,
+      paddingVertical: Spacing.md,
+    },
+    purchasePrimaryBtn: {
+      flex: 1.35,
+      minHeight: 46,
+      borderRadius: Radius.pill,
+      backgroundColor: C.accent,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.md,
+    },
+    purchaseSecondaryBtn: {
+      flex: 1,
+      minHeight: 46,
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.bg,
+      alignItems: 'center',
+      justifyContent: 'center',
+      paddingHorizontal: Spacing.md,
+    },
+    purchaseBtnDisabled: {
+      opacity: 0.45,
+    },
+    purchasePrimaryText: {
+      fontSize: FontSize.sm,
+      fontWeight: FontWeight.semibold,
+      color: C.accentText,
+      textAlign: 'center',
+    },
+    purchaseSecondaryText: {
+      fontSize: FontSize.sm,
+      fontWeight: FontWeight.semibold,
+      color: C.accent,
+      textAlign: 'center',
+    },
+    purchaseStatus: {
+      fontSize: FontSize.sm,
+      lineHeight: 20,
+      paddingTop: Spacing.md,
+      paddingBottom: Spacing.xs,
+    },
+    purchaseStatusNeutral: {
+      color: C.textSecondary,
+    },
+    purchaseStatusSuccess: {
+      color: '#22C55E',
+    },
+    purchaseStatusError: {
+      color: C.danger,
     },
   })
 }
