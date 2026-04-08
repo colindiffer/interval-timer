@@ -4,10 +4,11 @@ import {
   ActivityIndicator, Alert, Platform,
 } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
+import { AppleButton } from '@invertase/react-native-apple-authentication'
 import { useAuth } from '../context/AuthContext'
 import { FontSize, FontWeight, Spacing, Radius, useColors } from '../theme'
 import Logo from '../components/Logo'
-import { AppleIcon, GoogleIcon } from '../components/AuthIcons'
+import { GoogleIcon } from '../components/AuthIcons'
 
 // ─── Screen ───────────────────────────────────────────────────────────────────
 
@@ -83,22 +84,21 @@ export default function SignInScreen() {
 
         {/* Apple (iOS only) */}
         {appleAvailable ? (
-          <TouchableOpacity
-            style={styles.appleBtn}
-            onPress={handleApple}
-            activeOpacity={0.85}
-            disabled={loadingGoogle || loadingApple}
-          >
-            {loadingApple
-              ? <ActivityIndicator color="#ffffff" />
-              : (
-                <>
-                  <AppleIcon color="#ffffff" />
-                  <Text style={styles.appleBtnText}>Continue with Apple</Text>
-                </>
-              )
-            }
-          </TouchableOpacity>
+          <View style={[styles.appleBtnWrap, (loadingGoogle || loadingApple) && { opacity: 0.6 }]}>
+            {loadingApple ? (
+              <View style={styles.appleBtnLoading}>
+                <ActivityIndicator color={C.textPrimary} />
+              </View>
+            ) : (
+              <AppleButton
+                buttonStyle={AppleButton.Style.WHITE_OUTLINE}
+                buttonType={AppleButton.Type.CONTINUE}
+                cornerRadius={Radius.pill}
+                style={styles.appleNativeBtn}
+                onPress={handleApple}
+              />
+            )}
+          </View>
         ) : null}
 
         {/* Guest */}
@@ -168,19 +168,23 @@ function createStyles(C: ReturnType<typeof useColors>) {
       fontWeight: FontWeight.semibold,
       color:      '#1a1a1a',
     },
-    appleBtn: {
-      flexDirection:   'row',
-      alignItems:      'center',
-      justifyContent:  'center',
-      gap:             Spacing.sm,
-      height:          52,
-      borderRadius:    Radius.pill,
-      backgroundColor: '#000000',
+    appleBtnWrap: {
+      height: 52,
+      borderRadius: Radius.pill,
+      overflow: 'hidden',
     },
-    appleBtnText: {
-      fontSize:   FontSize.md,
-      fontWeight: FontWeight.semibold,
-      color:      '#ffffff',
+    appleNativeBtn: {
+      width: '100%',
+      height: '100%',
+    },
+    appleBtnLoading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.bg,
     },
     guestBtn: {
       alignItems:    'center',

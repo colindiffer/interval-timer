@@ -22,8 +22,7 @@ const ANDROID_UPLOAD_SHA1 = '8D:05:42:3D:DA:49:76:FD:36:66:62:E3:C5:B2:34:BB:E9:
 const ANDROID_UPLOAD_SHA256 = 'CC:5F:5B:3E:EB:77:AF:61:CD:44:2E:4D:45:45:8A:71:49:01:DD:93:BF:93:5C:94:AE:F3:F8:4E:F0:11:25:D6'
 
 GoogleSignin.configure({
-  webClientId:   WEB_CLIENT_ID,
-  offlineAccess: true,
+  webClientId: WEB_CLIENT_ID,
 })
 
 function extractGoogleErrorCode(error: any): string {
@@ -46,7 +45,7 @@ export function getGoogleSignInErrorMessage(error: any): string {
   }
 
   if (code === '10' || code === 'DEVELOPER_ERROR') {
-    return `Android Google sign-in is misconfigured. Add this Android signing cert to Firebase for com.differapps.intervaltimer, then re-download google-services.json and rebuild. SHA-1: ${ANDROID_UPLOAD_SHA1} SHA-256: ${ANDROID_UPLOAD_SHA256}`
+    return `Android Google sign-in is misconfigured. If this app came from Play, add the Play App Signing SHA keys in Play Console > App Integrity to Firebase for com.differapps.intervaltimer, then re-download google-services.json and rebuild. If this is a locally signed release, use the upload key instead. Upload SHA-1: ${ANDROID_UPLOAD_SHA1} Upload SHA-256: ${ANDROID_UPLOAD_SHA256}`
   }
 
   if (rawMessage.includes('no ID token')) {

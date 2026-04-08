@@ -6,6 +6,7 @@ import {
 import * as StoreReview from 'expo-store-review'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
+import { AppleButton } from '@invertase/react-native-apple-authentication'
 
 import { AppSettings, LocalePreference, PhaseColorKey, SoundThemeId } from '../types'
 import { DEFAULT_SETTINGS, getSettings, saveSettings } from '../data/storage'
@@ -23,7 +24,7 @@ import { cuePlayer } from '../audio/cuePlayer'
 import AdBanner from '../components/AdBanner'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
-import { AppleIcon, GoogleIcon } from '../components/AuthIcons'
+import { GoogleIcon } from '../components/AuthIcons'
 import { pushToCloud, pullFromCloud } from '../data/syncService'
 import { t, useI18n } from '../i18n'
 
@@ -382,28 +383,32 @@ export default function SettingsScreen() {
               </View>
             </TouchableOpacity>
             {appleAvailable ? (
-              <TouchableOpacity
-                style={[styles.appleBtn, signingIn && { opacity: 0.6 }]}
-                onPress={async () => {
-                  setSigningIn(true)
-                  try {
-                    await signInApple()
-                  } catch (error) {
-                    if (!isAppleCancel(error)) {
-                      setEmailError(getAppleErrorMessage(error))
-                    }
-                  } finally {
-                    setSigningIn(false)
-                  }
-                }}
-                activeOpacity={0.85}
-                disabled={signingIn}
-              >
-                <View style={styles.socialBtnContent}>
-                  <AppleIcon color="#ffffff" />
-                  <Text style={styles.appleBtnText}>{t('settings.continueWithApple')}</Text>
-                </View>
-              </TouchableOpacity>
+              <View style={[styles.appleBtnWrap, signingIn && { opacity: 0.6 }]}>
+                {signingIn ? (
+                  <View style={styles.appleBtnLoading}>
+                    <ActivityIndicator color={C.textPrimary} />
+                  </View>
+                ) : (
+                  <AppleButton
+                    buttonStyle={AppleButton.Style.WHITE_OUTLINE}
+                    buttonType={AppleButton.Type.CONTINUE}
+                    cornerRadius={Radius.pill}
+                    style={styles.appleNativeBtn}
+                    onPress={async () => {
+                      setSigningIn(true)
+                      try {
+                        await signInApple()
+                      } catch (error) {
+                        if (!isAppleCancel(error)) {
+                          setEmailError(getAppleErrorMessage(error))
+                        }
+                      } finally {
+                        setSigningIn(false)
+                      }
+                    }}
+                  />
+                )}
+              </View>
             ) : null}
           </View>
         )}
@@ -1182,17 +1187,23 @@ function createStyles(C: ReturnType<typeof useColors>) {
       fontWeight: FontWeight.semibold,
       color:      '#1a1a1a',
     },
-    appleBtn: {
-      height:          46,
-      borderRadius:    Radius.pill,
-      backgroundColor: '#000000',
-      alignItems:      'center',
-      justifyContent:  'center',
+    appleBtnWrap: {
+      height: 46,
+      borderRadius: Radius.pill,
+      overflow: 'hidden',
     },
-    appleBtnText: {
-      fontSize:   FontSize.sm,
-      fontWeight: FontWeight.semibold,
-      color:      '#ffffff',
+    appleNativeBtn: {
+      width: '100%',
+      height: '100%',
+    },
+    appleBtnLoading: {
+      flex: 1,
+      alignItems: 'center',
+      justifyContent: 'center',
+      borderRadius: Radius.pill,
+      borderWidth: 1,
+      borderColor: C.border,
+      backgroundColor: C.bg,
     },
     authTabRow: {
       flexDirection:   'row',
