@@ -1,7 +1,6 @@
 import auth from '@react-native-firebase/auth'
 import { GoogleSignin } from '@react-native-google-signin/google-signin'
 import appleAuth from '@invertase/react-native-apple-authentication'
-import * as Crypto from 'expo-crypto'
 import { Platform } from 'react-native'
 
 // ─── Setup ───────────────────────────────────────────────────────────────────
@@ -100,7 +99,6 @@ export function isAppleAuthAvailable(): boolean {
 }
 
 export async function signInWithApple(): Promise<void> {
-  // Generate a cryptographic nonce — Apple signs it so Firebase can verify
   const rawNonce = Array.from(
     { length: 32 },
     () => 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'[
@@ -108,22 +106,18 @@ export async function signInWithApple(): Promise<void> {
     ],
   ).join('')
 
-  const hashedNonce = await Crypto.digestStringAsync(
-    Crypto.CryptoDigestAlgorithm.SHA256,
-    rawNonce,
-  )
-
   const response = await appleAuth.performRequest({
     requestedOperation: appleAuth.Operation.LOGIN,
     requestedScopes:    [appleAuth.Scope.EMAIL, appleAuth.Scope.FULL_NAME],
-    nonce:              hashedNonce,
+    // The library hashes iOS nonces internally; passing a pre-hashed value causes a mismatch in Firebase.
+    nonce:              rawNonce,
   })
 
   if (!response.identityToken) throw new Error('Apple Sign-In returned no identity token')
 
   const credential = auth.AppleAuthProvider.credential(
     response.identityToken,
-    rawNonce,
+    response.nonce ?? rawNonce,
   )
   await auth().signInWithCredential(credential)
 }

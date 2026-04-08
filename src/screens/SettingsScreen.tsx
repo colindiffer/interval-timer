@@ -23,6 +23,7 @@ import { cuePlayer } from '../audio/cuePlayer'
 import AdBanner from '../components/AdBanner'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
+import { AppleIcon, GoogleIcon } from '../components/AuthIcons'
 import { pushToCloud, pullFromCloud } from '../data/syncService'
 import { t, useI18n } from '../i18n'
 
@@ -375,7 +376,10 @@ export default function SettingsScreen() {
               activeOpacity={0.85}
               disabled={signingIn}
             >
-              <Text style={styles.googleBtnText}>{t('settings.continueWithGoogle')}</Text>
+              <View style={styles.socialBtnContent}>
+                <GoogleIcon />
+                <Text style={styles.googleBtnText}>{t('settings.continueWithGoogle')}</Text>
+              </View>
             </TouchableOpacity>
             {appleAvailable ? (
               <TouchableOpacity
@@ -395,7 +399,10 @@ export default function SettingsScreen() {
                 activeOpacity={0.85}
                 disabled={signingIn}
               >
-                <Text style={styles.appleBtnText}>{t('settings.continueWithApple')}</Text>
+                <View style={styles.socialBtnContent}>
+                  <AppleIcon color="#ffffff" />
+                  <Text style={styles.appleBtnText}>{t('settings.continueWithApple')}</Text>
+                </View>
               </TouchableOpacity>
             ) : null}
           </View>
@@ -1163,6 +1170,12 @@ function createStyles(C: ReturnType<typeof useColors>) {
       shadowRadius:    6,
       shadowOffset:    { width: 0, height: 2 },
       elevation:       2,
+    },
+    socialBtnContent: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'center',
+      gap: Spacing.sm,
     },
     googleBtnText: {
       fontSize:   FontSize.sm,
