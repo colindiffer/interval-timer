@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect, useState } from 'react'
 import { StyleSheet } from 'react-native'
 import { NavigationContainer } from '@react-navigation/native'
 import { createNativeStackNavigator } from '@react-navigation/native-stack'
@@ -14,7 +14,8 @@ import HistoryScreen        from '../screens/HistoryScreen'
 import SettingsScreen       from '../screens/SettingsScreen'
 import ActiveWorkoutScreen  from '../screens/ActiveWorkoutScreen'
 import WorkoutBuilderScreen from '../screens/WorkoutBuilderScreen'
-import { t } from '../i18n'
+import StartupScreen from '../components/StartupScreen'
+import { t, useI18n } from '../i18n'
 
 const Stack = createNativeStackNavigator<RootStackParamList>()
 const Tab   = createBottomTabNavigator<TabParamList>()
@@ -62,6 +63,7 @@ function IconSettings({ color }: { color: string }) {
 
 function Tabs() {
   const C = useColors()
+  useI18n()
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -102,9 +104,15 @@ export default function AppNavigator() {
   const C = useColors()
   const { theme } = useTheme()
   const { loading } = useAuth()
+  const [introDone, setIntroDone] = useState(false)
+  useI18n()
 
-  // Still resolving Firebase session — render nothing to avoid flash
-  if (loading) return null
+  useEffect(() => {
+    const timer = setTimeout(() => setIntroDone(true), 3000)
+    return () => clearTimeout(timer)
+  }, [])
+
+  if (loading || !introDone) return <StartupScreen />
 
   return (
     <NavigationContainer

@@ -388,7 +388,7 @@ export async function startBackgroundTimer(data: TaskData): Promise<void> {
   const step = data.sequence[data.stepIndex]
 
   await BackgroundService.start(bgTimerTask, {
-    taskName:  'Interval Timer',
+    taskName:  'Flash Interval Timer Workout',
     taskTitle: data.workoutName,
     taskDesc:  `${phaseLabel(step.type)}  ·  ${formatCountdown(data.countdown)}`,
     taskIcon:  { name: 'ic_launcher', type: 'mipmap' },
@@ -420,7 +420,7 @@ export async function ensureNotificationPermission(): Promise<boolean> {
     PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
     {
       title: 'Allow timer notifications',
-      message: 'Interval Timer needs notification access to keep workouts running in the background.',
+      message: 'Flash Interval Timer Workout needs notification access to keep workouts running in the background.',
       buttonPositive: 'Allow',
       buttonNegative: 'Not now',
     }

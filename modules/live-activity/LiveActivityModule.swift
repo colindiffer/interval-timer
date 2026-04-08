@@ -1,5 +1,6 @@
 import ExpoModulesCore
 import ActivityKit
+import UIKit
 
 // MARK: - Attributes (must be identical to the widget extension)
 
@@ -86,6 +87,23 @@ public class LiveActivityModule: Module {
                 return ActivityAuthorizationInfo().areActivitiesEnabled
             }
             return false
+        }
+
+        Function("getSupportStatus") { () -> [String: Any] in
+            if #available(iOS 16.2, *) {
+                let enabled = ActivityAuthorizationInfo().areActivitiesEnabled
+                return [
+                    "isAvailable": enabled,
+                    "reason": enabled ? "available" : "activities_disabled",
+                    "osVersion": UIDevice.current.systemVersion
+                ]
+            }
+
+            return [
+                "isAvailable": false,
+                "reason": "ios_version_too_old",
+                "osVersion": UIDevice.current.systemVersion
+            ]
         }
     }
 

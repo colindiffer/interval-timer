@@ -20,7 +20,7 @@ import WorkoutCard from '../components/WorkoutCard'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, useColors } from '../theme'
 import { useAuth } from '../context/AuthContext'
-import { formatRelativeDate, t } from '../i18n'
+import { formatRelativeDate, t, useI18n } from '../i18n'
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Library'>,
@@ -29,6 +29,7 @@ type Props = CompositeScreenProps<
 type MenuAction = 'toggle-favourite' | 'duplicate' | 'edit' | 'delete'
 
 export default function LibraryScreen({ navigation }: Props) {
+  useI18n()
   const C = useColors()
   const styles = createStyles(C)
   const { user } = useAuth()

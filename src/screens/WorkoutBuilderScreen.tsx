@@ -13,7 +13,7 @@ import { saveWorkoutToCloud } from '../data/syncService'
 import { Spacing, Radius, FontSize, FontWeight, useColors, PHASE_COLOR_OPTIONS } from '../theme'
 import { cuePlayer } from '../audio/cuePlayer'
 import { useAuth } from '../context/AuthContext'
-import { t } from '../i18n'
+import { t, useI18n } from '../i18n'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'WorkoutBuilder'>
 
@@ -174,6 +174,7 @@ type PickerField =
   | null
 
 export default function WorkoutBuilderScreen({ route, navigation }: Props) {
+  useI18n()
   const C = useColors()
   const styles = createStyles(C)
   const { user } = useAuth()

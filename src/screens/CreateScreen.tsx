@@ -14,7 +14,7 @@ import { getWorkouts, getFavourites, toggleFavourite, getHistory } from '../data
 import WorkoutCard from '../components/WorkoutCard'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, useColors } from '../theme'
-import { formatRelativeDate, t } from '../i18n'
+import { formatRelativeDate, t, useI18n } from '../i18n'
 
 type Props = CompositeScreenProps<
   BottomTabScreenProps<TabParamList, 'Create'>,
@@ -22,6 +22,7 @@ type Props = CompositeScreenProps<
 >
 
 export default function CreateScreen({ navigation }: Props) {
+  useI18n()
   const C = useColors()
   const styles = createStyles(C)
   const [presets, setPresets] = useState<Workout[]>([])

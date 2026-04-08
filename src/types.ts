@@ -1,6 +1,8 @@
 export type PhaseType = 'warmup' | 'work' | 'rest' | 'cooldown'
 export type PhaseColorKey = PhaseType | 'complete'
 export type SoundThemeId = 'beep' | 'bell' | 'gong' | 'whistle'
+export type SupportedLocale = 'en' | 'es' | 'fr' | 'de' | 'pt-BR' | 'ja'
+export type LocalePreference = SupportedLocale | 'system'
 
 export interface WorkoutInterval {
   workDuration: number
@@ -55,6 +57,7 @@ export interface AppSettings {
   countdownBeeps: boolean
   finalCountdown: number
   darkMode: boolean | 'system'
+  locale: LocalePreference
   soundTheme: SoundThemeId
   phaseColors: Record<PhaseColorKey, string>
 }

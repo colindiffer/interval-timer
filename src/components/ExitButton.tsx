@@ -1,13 +1,14 @@
 import React from 'react'
 import { Pressable, StyleSheet, Text, View } from 'react-native'
 import { FontSize, FontWeight, Radius } from '../theme'
-import { t } from '../i18n'
+import { t, useI18n } from '../i18n'
 
 interface Props {
   onExit: () => void
 }
 
 export default function ExitButton({ onExit }: Props) {
+  useI18n()
   return (
     <Pressable onPress={onExit} style={styles.wrapper}>
       {({ pressed }) => (

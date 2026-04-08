@@ -13,6 +13,13 @@ const KEYS = {
 
 const MAX_HISTORY = 30
 const MAX_FAVOURITES = 3
+const LEGACY_DEFAULT_PHASE_COLORS = {
+  work: '#3B82F6',
+  rest: '#1D4ED8',
+  warmup: '#F59E0B',
+  cooldown: '#6366F1',
+  complete: '#1C1C1E',
+} as const
 
 // ── Workouts ──────────────────────────────────────────────────────────────────
 
@@ -109,6 +116,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
   countdownBeeps: true,
   finalCountdown: 3,
   darkMode:       'system',
+  locale:         'system',
   soundTheme:     'beep',
   phaseColors:    DEFAULT_PHASE_COLORS,
 }
@@ -118,6 +126,7 @@ export async function getSettings(): Promise<AppSettings> {
   if (!raw) return DEFAULT_SETTINGS
 
   const parsed = JSON.parse(raw)
+  const validLocales: AppSettings['locale'][] = ['system', 'en', 'es', 'fr', 'de', 'pt-BR', 'ja']
   const validThemes: AppSettings['soundTheme'][] = ['beep', 'bell', 'gong', 'whistle']
   const legacySoundThemeMap: Record<string, AppSettings['soundTheme']> = {
     confirmation:   'beep',
@@ -131,15 +140,25 @@ export async function getSettings(): Promise<AppSettings> {
   const soundTheme: AppSettings['soundTheme'] = validThemes.includes(rawTheme)
     ? rawTheme
     : legacySoundThemeMap[rawTheme] ?? DEFAULT_SETTINGS.soundTheme
+  const locale: AppSettings['locale'] = validLocales.includes(parsed.locale)
+    ? parsed.locale
+    : DEFAULT_SETTINGS.locale
+  const usesLegacyPhaseDefaults = Object.entries(LEGACY_DEFAULT_PHASE_COLORS).every(
+    ([key, value]) => parsed.phaseColors?.[key] === value,
+  )
+  const phaseColors = parsed.phaseColors && !usesLegacyPhaseDefaults
+    ? {
+        ...DEFAULT_SETTINGS.phaseColors,
+        ...parsed.phaseColors,
+      }
+    : DEFAULT_SETTINGS.phaseColors
 
   return {
     ...DEFAULT_SETTINGS,
     ...parsed,
+    locale,
     soundTheme,
-    phaseColors: {
-      ...DEFAULT_SETTINGS.phaseColors,
-      ...(parsed.phaseColors ?? {}),
-    },
+    phaseColors,
   }
 }
 

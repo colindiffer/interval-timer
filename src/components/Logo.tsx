@@ -1,9 +1,9 @@
 import React from 'react'
-import Svg, { Circle, Path } from 'react-native-svg'
+import Svg, { Circle, Path, Rect } from 'react-native-svg'
 
 interface Props {
   size?: number
-  /** Colour of the lightning bolt — use a dark value on light backgrounds */
+  /** Colour of the lightning bolt */
   boltColor?: string
 }
 
@@ -12,23 +12,27 @@ interface Props {
  * Reproduced from assets/logo.svg, without the background rect so it
  * composites cleanly onto any screen background.
  */
-export default function Logo({ size = 36, boltColor = '#FACC15' }: Props) {
+export default function Logo({ size = 36, boltColor = '#FFFFFF' }: Props) {
   // Original viewBox is 0 0 100 100
   return (
     <Svg width={size} height={size} viewBox="0 0 100 100" fill="none">
+      {/* Side pusher */}
+      <Rect x="69" y="9" width="12" height="6" rx="3" fill="#FF6D00" transform="rotate(32 69 9)" />
+      {/* Filled face */}
+      <Circle cx="50" cy="52" r="32" fill="#FF6D00" />
       {/* Ring track */}
-      <Circle cx="50" cy="50" r="35" stroke="#1E3A5F" strokeWidth="6" />
-      {/* Timer arc: 300° clockwise from 12 o'clock */}
+      <Circle cx="50" cy="52" r="37" stroke="#0D47A1" strokeWidth="8" />
+      {/* Timer arc */}
       <Path
-        d="M 50 15 A 35 35 0 1 1 19.7 32.5"
-        stroke="#3B82F6"
-        strokeWidth="6"
+        d="M 50 15 A 37 37 0 1 1 20.3 29.9"
+        stroke="#0D47A1"
+        strokeWidth="8"
         strokeLinecap="round"
       />
       {/* Arc end dot */}
-      <Circle cx="19.7" cy="32.5" r="4.5" fill="#60A5FA" />
+      <Circle cx="20.3" cy="29.9" r="5.2" fill="#00E676" />
       {/* Lightning bolt */}
-      <Path d="M 55 28 L 44 52 L 51 52 L 45 72 L 56 48 L 49 48 Z" fill={boltColor} />
+      <Path d="M 55 29 L 42.5 51 L 50 51 L 43 75 L 58.5 46 L 50.5 46 Z" fill={boltColor} />
     </Svg>
   )
 }

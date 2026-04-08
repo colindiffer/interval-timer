@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity } from 'react-native'
 import Svg, { Path } from 'react-native-svg'
 import { Workout } from '../types'
 import { Spacing, Radius, FontSize, FontWeight, useColors } from '../theme'
-import { t } from '../i18n'
+import { t, useI18n } from '../i18n'
 
 function formatDuration(seconds: number): string {
   if (seconds === 0) return '—'
@@ -81,6 +81,7 @@ export default function WorkoutCard({
   onMorePress,
   onFavouritePress,
 }: Props) {
+  useI18n()
   const C = useColors()
   const styles = createStyles(C)
 

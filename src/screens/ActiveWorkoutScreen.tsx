@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react'
 import {
-  View, Text, StyleSheet, TouchableOpacity, StatusBar, AppState, AppStateStatus,
+  View, Text, StyleSheet, TouchableOpacity, StatusBar, AppState, AppStateStatus, Alert, Platform,
 } from 'react-native'
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { SafeAreaView } from 'react-native-safe-area-context'
@@ -24,9 +24,9 @@ import {
   skipBackgroundStep, BgPhaseStep, BgTimerState, ensureNotificationPermission, persistLiveActivityId,
 } from '../engine/BackgroundTimerService'
 import {
-  isLiveActivitySupported, startLiveActivity, updateLiveActivity, endLiveActivity,
+  getLiveActivitySupportStatus, isLiveActivitySupported, startLiveActivity, updateLiveActivity, endLiveActivity,
 } from '../../modules/live-activity'
-import { t } from '../i18n'
+import { t, useI18n } from '../i18n'
 
 type Props = NativeStackScreenProps<RootStackParamList, 'ActiveWorkout'>
 
@@ -121,6 +121,7 @@ function nextPhaseLabel(phase: string): string {
 }
 
 export default function ActiveWorkoutScreen({ route, navigation }: Props) {
+  useI18n()
   const C = useColors()
   const { theme } = useTheme()
   const styles = createStyles(C)
@@ -139,10 +140,18 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
   const workoutRef = useRef<Workout | null>(null)
   const appStateRef = useRef<AppStateStatus>(AppState.currentState)
   const liveActivityIdRef = useRef<string | null>(null)
+  const liveActivityAlertShownRef = useRef(false)
 
   useEffect(() => {
     settingsRef.current = settings
   }, [settings])
+
+  const reportLiveActivityIssue = useCallback((title: string, message: string, error?: unknown) => {
+    console.warn(title, message, error)
+    if (liveActivityAlertShownRef.current) return
+    liveActivityAlertShownRef.current = true
+    Alert.alert(title, message)
+  }, [])
 
   useEffect(() => {
     void ensureNotificationPermission()
@@ -332,10 +341,40 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
               isPaused: false,
               pausedSecondsRemaining: 0,
             },
-          }).then(id => {
+          }).then(async id => {
+            if (!id) {
+              const status = await getLiveActivitySupportStatus()
+              const reasonDetail = status.reason === 'activities_disabled'
+                ? 'Live Activities are disabled on this iPhone or for this app. Check Settings > Touch ID & Passcode > Allow Access When Locked > Live Activities, and also the app-specific Live Activities setting if it appears.'
+                : status.reason === 'ios_version_too_old'
+                  ? `Live Activities require iOS 16.2 or later. This device reports iOS ${status.osVersion ?? 'unknown'}.`
+                  : 'The Live Activity did not start. The timer will keep running in the background, but nothing will appear on the Lock Screen.'
+              reportLiveActivityIssue('Live Activity unavailable', reasonDetail)
+              return
+            }
+
             liveActivityIdRef.current = id
             void persistLiveActivityId(id)
-          }).catch(() => {})
+          }).catch(async error => {
+            const status = await getLiveActivitySupportStatus()
+            const deviceContext = Platform.OS === 'ios'
+              ? `Status: ${status.reason}${status.osVersion ? ` on iOS ${status.osVersion}` : ''}.`
+              : 'This device is not using the iOS Live Activity path.'
+            reportLiveActivityIssue(
+              'Live Activity failed to start',
+              `${deviceContext} The workout will still run, but the Lock Screen tile was not created.`,
+              error,
+            )
+          })
+        } else if (Platform.OS === 'ios' && !liveActivityIdRef.current && workoutRef.current) {
+          void getLiveActivitySupportStatus().then(status => {
+            if (!status.isAvailable) {
+              const message = status.reason === 'activities_disabled'
+                ? 'Live Activities are currently disabled on this iPhone or for this app, so nothing can appear on the Lock Screen.'
+                : `Live Activities are unavailable on this device configuration${status.osVersion ? ` (iOS ${status.osVersion})` : ''}.`
+              reportLiveActivityIssue('Live Activity unavailable', message)
+            }
+          })
         }
       }
       setTimerState({ ...state })

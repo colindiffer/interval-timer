@@ -35,6 +35,7 @@ firebase-debug.*.log
 # local env files
 .env
 .env*.local
+key.properties
 
 # typescript
 *.tsbuildinfo

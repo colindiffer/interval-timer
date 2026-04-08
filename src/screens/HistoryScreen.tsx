@@ -13,7 +13,7 @@ import { HistoryEntry } from '../types'
 import { getHistory } from '../data/storage'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, Radius, useColors } from '../theme'
-import { formatLocalizedDate, t } from '../i18n'
+import { formatLocalizedDate, t, useI18n } from '../i18n'
 
 interface Stats {
   totalSessions: number
@@ -90,6 +90,7 @@ function formatDuration(seconds: number): string {
 }
 
 export default function HistoryScreen({ navigation }: Props) {
+  useI18n()
   const C = useColors()
   const styles = createStyles(C)
   const [groups, setGroups] = useState<GroupedHistory[]>([])

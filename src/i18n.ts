@@ -1,6 +1,8 @@
+import React, { createContext, useCallback, useContext, useEffect, useState } from 'react'
 import { NativeModules, Platform } from 'react-native'
+import { getSettings, saveSettings } from './data/storage'
+import { LocalePreference, SupportedLocale } from './types'
 
-type SupportedLocale = 'en' | 'es' | 'fr' | 'de' | 'pt-BR' | 'ja'
 type Params = Record<string, string | number>
 type TranslationValue = string | ((params: Params) => string)
 type TranslationTable = Record<string, TranslationValue>
@@ -156,6 +158,9 @@ const translations: Record<SupportedLocale, TranslationTable> = {
     'settings.dark': 'Dark',
     'settings.system': 'System',
     'settings.currentMode': 'Current mode',
+    'settings.language': 'Language',
+    'settings.languageSubtitle': 'Choose your app language instead of assuming the phone language.',
+    'settings.currentLanguage': 'Current language',
     'settings.sound': 'Sound',
     'settings.soundSubtitle': 'Sound and voice are mutually exclusive.',
     'settings.soundMode.sound': 'Sound',
@@ -376,6 +381,20 @@ const translations: Record<SupportedLocale, TranslationTable> = {
   },
 }
 
+interface I18nContextValue {
+  locale: SupportedLocale
+  localeSetting: LocalePreference
+  setLocale: (value: LocalePreference) => void
+}
+
+const I18nContext = createContext<I18nContextValue>({
+  locale: 'en',
+  localeSetting: 'system',
+  setLocale: () => {},
+})
+
+let localeOverride: LocalePreference = 'system'
+
 function detectRawLocale(): string {
   if (Platform.OS === 'ios') {
     const settings = NativeModules.SettingsManager?.settings
@@ -394,8 +413,46 @@ function normalizeLocale(locale: string): SupportedLocale {
   return 'en'
 }
 
+function resolveLocale(localeSetting: LocalePreference): SupportedLocale {
+  return localeSetting === 'system' ? normalizeLocale(detectRawLocale()) : localeSetting
+}
+
 export function getLocale(): SupportedLocale {
-  return normalizeLocale(detectRawLocale())
+  return resolveLocale(localeOverride)
+}
+
+export function I18nProvider({ children }: { children: React.ReactNode }) {
+  const [localeSetting, setLocaleSetting] = useState<LocalePreference>('system')
+
+  useEffect(() => {
+    getSettings().then(settings => {
+      const nextLocale = settings.locale ?? 'system'
+      localeOverride = nextLocale
+      setLocaleSetting(nextLocale)
+    })
+  }, [])
+
+  const setLocale = useCallback((value: LocalePreference) => {
+    localeOverride = value
+    setLocaleSetting(value)
+    saveSettings({ locale: value })
+  }, [])
+
+  return React.createElement(
+    I18nContext.Provider,
+    {
+      value: {
+        locale: resolveLocale(localeSetting),
+        localeSetting,
+        setLocale,
+      },
+    },
+    children,
+  )
+}
+
+export function useI18n() {
+  return useContext(I18nContext)
 }
 
 export function t(key: string, params: Params = {}): string {

@@ -25,6 +25,61 @@ GoogleSignin.configure({
   offlineAccess: true,
 })
 
+function extractGoogleErrorCode(error: any): string {
+  const code = error?.code ?? error?.nativeErrorCode ?? error?.userInfo?.code
+  return code !== undefined && code !== null ? String(code) : 'unknown'
+}
+
+export function isGoogleSignInCancelled(error: any): boolean {
+  const code = extractGoogleErrorCode(error)
+  const message = String(error?.message ?? '')
+  return code === '12501' || code === 'SIGN_IN_CANCELLED' || message.includes('Sign in action cancelled')
+}
+
+export function getGoogleSignInErrorMessage(error: any): string {
+  const code = extractGoogleErrorCode(error)
+  const rawMessage = String(error?.message ?? 'No message')
+
+  if (isGoogleSignInCancelled(error)) {
+    return 'Google sign-in was cancelled.'
+  }
+
+  if (code === '10' || code === 'DEVELOPER_ERROR') {
+    return 'Android Google sign-in is misconfigured. The Firebase Android app is missing the OAuth client setup Google Sign-In needs. Add the Android app SHA-1 and SHA-256 fingerprints in Firebase, re-download google-services.json, and rebuild the app.'
+  }
+
+  if (rawMessage.includes('no ID token')) {
+    return 'Google sign-in completed without an ID token. Verify the web client ID in Firebase Authentication and the Google Sign-In configuration.'
+  }
+
+  return `Google sign-in failed. Code: ${code}. ${rawMessage}`
+}
+
+function extractAppleErrorCode(error: any): string {
+  const code = error?.code ?? error?.userInfo?.code
+  return code !== undefined && code !== null ? String(code) : 'unknown'
+}
+
+export function isAppleSignInCancelled(error: any): boolean {
+  const code = extractAppleErrorCode(error)
+  return code === '1001'
+}
+
+export function getAppleSignInErrorMessage(error: any): string {
+  const code = extractAppleErrorCode(error)
+  const rawMessage = String(error?.message ?? 'No message')
+
+  if (isAppleSignInCancelled(error)) {
+    return 'Apple sign-in was cancelled.'
+  }
+
+  if (rawMessage.includes('identity token') || code === '1000') {
+    return 'Apple sign-in is not fully configured. Check the Apple provider in Firebase Authentication, confirm the iOS capability is enabled for this bundle ID, and rebuild the app.'
+  }
+
+  return `Apple sign-in failed. Code: ${code}. ${rawMessage}`
+}
+
 // ─── Google ───────────────────────────────────────────────────────────────────
 
 export async function signInWithGoogle(): Promise<void> {

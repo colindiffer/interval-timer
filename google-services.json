@@ -12,7 +12,36 @@
           "package_name": "com.differapps.intervaltimer"
         }
       },
-      "oauth_client": [],
+      "oauth_client": [
+        {
+          "client_id": "703339875432-ch4f4fvrpisae8intb79bshq5bk9ooqo.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.differapps.intervaltimer",
+            "certificate_hash": "192caae5454ab7913555662d60a74ab3740a5921"
+          }
+        },
+        {
+          "client_id": "703339875432-i88j8eehudg5haeq1cg4ch973dn497m6.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.differapps.intervaltimer",
+            "certificate_hash": "ae9b2b4118eda2c06e3a5aeb05c5762f43cc3184"
+          }
+        },
+        {
+          "client_id": "703339875432-n8tjmulnjh930h32hci6fn2ou4rnkavn.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.differapps.intervaltimer",
+            "certificate_hash": "5e8f16062ea3cd2c4a0d547876baa6f38cabf625"
+          }
+        },
+        {
+          "client_id": "703339875432-2cj2ekf03t8u77fknmvni8odqbf77juq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
       "api_key": [
         {
           "current_key": "AIzaSyCTvcTflI4ulyK_edhNfncp8WLtGTqtq2A"
@@ -20,7 +49,19 @@
       ],
       "services": {
         "appinvite_service": {
-          "other_platform_oauth_client": []
+          "other_platform_oauth_client": [
+            {
+              "client_id": "703339875432-2cj2ekf03t8u77fknmvni8odqbf77juq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "703339875432-f6pkvovfv2dq4ir78nl608rtguast1rm.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.differapps.intervaltimer"
+              }
+            }
+          ]
         }
       }
     }

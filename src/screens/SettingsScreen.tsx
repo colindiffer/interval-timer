@@ -7,7 +7,7 @@ import * as StoreReview from 'expo-store-review'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { useFocusEffect } from '@react-navigation/native'
 
-import { AppSettings, PhaseColorKey, SoundThemeId } from '../types'
+import { AppSettings, LocalePreference, PhaseColorKey, SoundThemeId } from '../types'
 import { DEFAULT_SETTINGS, getSettings, saveSettings } from '../data/storage'
 import {
   DEFAULT_PHASE_COLORS,
@@ -24,7 +24,7 @@ import AdBanner from '../components/AdBanner'
 import { useAuth } from '../context/AuthContext'
 import Logo from '../components/Logo'
 import { pushToCloud, pullFromCloud } from '../data/syncService'
-import { t } from '../i18n'
+import { t, useI18n } from '../i18n'
 
 const APP_VERSION = '1.0.0'
 const FINAL_COUNT_OPTIONS = [0, 3, 5]
@@ -34,6 +34,14 @@ const SOUND_THEMES: SoundThemeId[] = [
   'gong',
   'whistle',
 ]
+const LANGUAGE_LABELS: Record<Exclude<LocalePreference, 'system'>, string> = {
+  en: 'English',
+  es: 'Español',
+  fr: 'Français',
+  de: 'Deutsch',
+  'pt-BR': 'Português (Brasil)',
+  ja: '日本語',
+}
 const PHASE_ROWS: Array<{ key: PhaseColorKey; labelKey: string; valueKey: string }> = [
   { key: 'warmup', labelKey: 'settings.phase.warmupLabel', valueKey: 'settings.phase.warmupValue' },
   { key: 'work', labelKey: 'settings.phase.workLabel', valueKey: 'settings.phase.workValue' },
@@ -46,7 +54,21 @@ export default function SettingsScreen() {
   const C = useColors()
   const styles = createStyles(C)
   const { darkModeSetting, setDarkMode } = useTheme()
-  const { user, signInGoogle, signInApple, signInEmail, createAccountEmail, resetPassword, signOut, appleAvailable } = useAuth()
+  const { locale, localeSetting, setLocale } = useI18n()
+  const {
+    user,
+    signInGoogle,
+    signInApple,
+    signInEmail,
+    createAccountEmail,
+    resetPassword,
+    signOut,
+    appleAvailable,
+    getGoogleErrorMessage,
+    isGoogleCancel,
+    getAppleErrorMessage,
+    isAppleCancel,
+  } = useAuth()
   const [signingIn, setSigningIn]   = useState(false)
   const [authMode, setAuthMode]     = useState<'login' | 'register'>('login')
   const [email, setEmail]           = useState('')
@@ -338,7 +360,18 @@ export default function SettingsScreen() {
             {/* Social */}
             <TouchableOpacity
               style={[styles.googleBtn, signingIn && { opacity: 0.6 }]}
-              onPress={async () => { setSigningIn(true); try { await signInGoogle() } catch {} finally { setSigningIn(false) } }}
+              onPress={async () => {
+                setSigningIn(true)
+                try {
+                  await signInGoogle()
+                } catch (error) {
+                  if (!isGoogleCancel(error)) {
+                    setEmailError(getGoogleErrorMessage(error))
+                  }
+                } finally {
+                  setSigningIn(false)
+                }
+              }}
               activeOpacity={0.85}
               disabled={signingIn}
             >
@@ -347,7 +380,18 @@ export default function SettingsScreen() {
             {appleAvailable ? (
               <TouchableOpacity
                 style={[styles.appleBtn, signingIn && { opacity: 0.6 }]}
-                onPress={async () => { setSigningIn(true); try { await signInApple() } catch {} finally { setSigningIn(false) } }}
+                onPress={async () => {
+                  setSigningIn(true)
+                  try {
+                    await signInApple()
+                  } catch (error) {
+                    if (!isAppleCancel(error)) {
+                      setEmailError(getAppleErrorMessage(error))
+                    }
+                  } finally {
+                    setSigningIn(false)
+                  }
+                }}
                 activeOpacity={0.85}
                 disabled={signingIn}
               >
@@ -372,6 +416,22 @@ export default function SettingsScreen() {
           <InfoRow
             label={t('settings.currentMode')}
             value={darkModeSetting === false ? t('settings.light') : darkModeSetting === true ? t('settings.dark') : t('settings.system')}
+          />
+        </View>
+
+        <SectionHeader title={t('settings.language')} subtitle={t('settings.languageSubtitle')} />
+        <View style={styles.panel}>
+          <LanguageSelector
+            selected={localeSetting}
+            onSelect={value => {
+              setSettings(current => ({ ...current, locale: value }))
+              setLocale(value)
+            }}
+          />
+          <Divider />
+          <InfoRow
+            label={t('settings.currentLanguage')}
+            value={getLanguageLabel(locale)}
           />
         </View>
 
@@ -666,6 +726,43 @@ function SoundThemeSelector({
   )
 }
 
+function LanguageSelector({
+  selected,
+  onSelect,
+}: {
+  selected: LocalePreference
+  onSelect: (locale: LocalePreference) => void
+}) {
+  const C = useColors()
+  const styles = createStyles(C)
+  const options: LocalePreference[] = ['system', 'en', 'es', 'fr', 'de', 'pt-BR', 'ja']
+
+  return (
+    <View style={styles.soundThemeList}>
+      {options.map(option => {
+        const active = option === selected
+        return (
+          <TouchableOpacity
+            key={option}
+            style={styles.soundThemeRow}
+            onPress={() => onSelect(option)}
+            activeOpacity={0.7}
+          >
+            <View style={styles.soundThemeLeft}>
+              <View style={[styles.radioOuter, active && styles.radioOuterActive]}>
+                {active ? <View style={styles.radioInner} /> : null}
+              </View>
+              <View style={styles.soundThemeText}>
+                <Text style={styles.rowLabel}>{getLanguageLabel(option, t('settings.system'))}</Text>
+              </View>
+            </View>
+          </TouchableOpacity>
+        )
+      })}
+    </View>
+  )
+}
+
 function PillSelector({
   options,
   selected,
@@ -701,6 +798,11 @@ function Divider() {
   const C = useColors()
   const styles = createStyles(C)
   return <View style={styles.divider} />
+}
+
+function getLanguageLabel(locale: LocalePreference, systemLabel = t('settings.system')): string {
+  if (locale === 'system') return systemLabel
+  return LANGUAGE_LABELS[locale]
 }
 
 function createStyles(C: ReturnType<typeof useColors>) {

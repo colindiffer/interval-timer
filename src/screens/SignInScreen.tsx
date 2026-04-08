@@ -37,7 +37,16 @@ function AppleIcon({ color }: { color: string }) {
 export default function SignInScreen() {
   const C = useColors()
   const styles = createStyles(C)
-  const { signInGoogle, signInApple, continueAsGuest, appleAvailable } = useAuth()
+  const {
+    signInGoogle,
+    signInApple,
+    continueAsGuest,
+    appleAvailable,
+    getGoogleErrorMessage,
+    isGoogleCancel,
+    getAppleErrorMessage,
+    isAppleCancel,
+  } = useAuth()
 
   const [loadingGoogle, setLoadingGoogle] = useState(false)
   const [loadingApple,  setLoadingApple]  = useState(false)
@@ -47,11 +56,8 @@ export default function SignInScreen() {
     try {
       await signInGoogle()
     } catch (e: any) {
-      const code = e?.code ?? e?.nativeErrorCode ?? 'unknown'
-      const msg  = e?.message ?? 'No message'
-      // 12501 = user cancelled — no alert needed
-      if (code !== '12501' && msg !== 'Sign in action cancelled') {
-        Alert.alert('Sign in failed', `Code: ${code}\n${msg}`)
+      if (!isGoogleCancel(e)) {
+        Alert.alert('Sign in failed', getGoogleErrorMessage(e))
       }
     } finally {
       setLoadingGoogle(false)
@@ -63,8 +69,8 @@ export default function SignInScreen() {
     try {
       await signInApple()
     } catch (e: any) {
-      if (e?.code !== '1001') { // 1001 = cancelled
-        Alert.alert('Sign in failed', 'Could not sign in with Apple. Please try again.')
+      if (!isAppleCancel(e)) {
+        Alert.alert('Sign in failed', getAppleErrorMessage(e))
       }
     } finally {
       setLoadingApple(false)
@@ -75,7 +81,7 @@ export default function SignInScreen() {
     <SafeAreaView style={styles.root} edges={['top', 'bottom']}>
       <View style={styles.brandArea}>
         <Logo size={72} />
-        <Text style={styles.appName}>Interval Timer</Text>
+        <Text style={styles.appName}>Flash Interval Timer Workout</Text>
         <Text style={styles.tagline}>Track every rep. Every second.</Text>
       </View>
 
@@ -156,6 +162,7 @@ function createStyles(C: ReturnType<typeof useColors>) {
       fontWeight: FontWeight.heavy,
       color:      C.textPrimary,
       marginTop:  Spacing.sm,
+      textAlign:  'center',
     },
     tagline: {
       fontSize: FontSize.md,

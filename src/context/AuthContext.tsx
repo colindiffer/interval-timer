@@ -4,7 +4,11 @@ import type { FirebaseAuthTypes } from '@react-native-firebase/auth'
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import {
   signInWithGoogle,
+  getGoogleSignInErrorMessage,
+  isGoogleSignInCancelled,
   signInWithApple,
+  getAppleSignInErrorMessage,
+  isAppleSignInCancelled,
   signInWithEmail,
   createAccountWithEmail,
   sendPasswordReset,
@@ -29,6 +33,10 @@ interface AuthContextValue {
   resetPassword:       (email: string) => Promise<void>
   continueAsGuest:     () => Promise<void>
   signOut:             () => Promise<void>
+  getGoogleErrorMessage: (error: unknown) => string
+  isGoogleCancel: (error: unknown) => boolean
+  getAppleErrorMessage: (error: unknown) => string
+  isAppleCancel: (error: unknown) => boolean
 }
 
 // ─── Context ──────────────────────────────────────────────────────────────────
@@ -110,6 +118,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       user, isGuest, loading, appleAvailable,
       signInGoogle, signInApple, signInEmail, createAccountEmail, resetPassword,
       continueAsGuest, signOut,
+      getGoogleErrorMessage: getGoogleSignInErrorMessage,
+      isGoogleCancel: isGoogleSignInCancelled,
+      getAppleErrorMessage: getAppleSignInErrorMessage,
+      isAppleCancel: isAppleSignInCancelled,
     }}>
       {children}
     </AuthContext.Provider>
