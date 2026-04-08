@@ -63,9 +63,18 @@ function IconSettings({ color }: { color: string }) {
 
 function Tabs() {
   const C = useColors()
-  useI18n()
+  const { locale } = useI18n()
+
+  const getTabLabel = (routeName: keyof TabParamList) => {
+    if (routeName === 'Library') return t('nav.library')
+    if (routeName === 'Create') return t('nav.create')
+    if (routeName === 'History') return t('nav.history')
+    return t('nav.settings')
+  }
+
   return (
     <Tab.Navigator
+      key={locale}
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarIcon: ({ color }) => {
@@ -90,12 +99,13 @@ function Tabs() {
           fontWeight: '500',
           marginTop:  2,
         },
+        tabBarLabel: getTabLabel(route.name),
       })}
     >
-      <Tab.Screen name="Library"  component={LibraryScreen} options={{ tabBarLabel: t('nav.library') }} />
-      <Tab.Screen name="Create"   component={CreateScreen}  options={{ tabBarLabel: t('nav.create') }} />
-      <Tab.Screen name="History"  component={HistoryScreen} options={{ tabBarLabel: t('nav.history') }} />
-      <Tab.Screen name="Settings" component={SettingsScreen} options={{ tabBarLabel: t('nav.settings') }} />
+      <Tab.Screen name="Library"  component={LibraryScreen} />
+      <Tab.Screen name="Create"   component={CreateScreen} />
+      <Tab.Screen name="History"  component={HistoryScreen} />
+      <Tab.Screen name="Settings" component={SettingsScreen} />
     </Tab.Navigator>
   )
 }

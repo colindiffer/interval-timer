@@ -10,7 +10,7 @@ import { NativeStackScreenProps } from '@react-navigation/native-stack'
 
 import { RootStackParamList, TabParamList } from '../navigation/types'
 import { HistoryEntry } from '../types'
-import { getHistory } from '../data/storage'
+import { getHistory, getWorkouts } from '../data/storage'
 import InlineAdCard from '../components/InlineAdCard'
 import { Spacing, FontSize, FontWeight, Radius, useColors } from '../theme'
 import { formatLocalizedDate, t, useI18n } from '../i18n'
@@ -98,10 +98,16 @@ export default function HistoryScreen({ navigation }: Props) {
   const [stats, setStats]   = useState<Stats>({ totalSessions: 0, totalMinutes: 0, streak: 0 })
 
   useFocusEffect(useCallback(() => {
-    getHistory().then(h => {
-      setEmpty(h.length === 0)
-      setGroups(groupByWeek(h))
-      setStats(calcStats(h))
+    Promise.all([getHistory(), getWorkouts()]).then(([history, workouts]) => {
+      const namesById = new Map(workouts.map(workout => [workout.id, workout.name]))
+      const localizedHistory = history.map(entry => ({
+        ...entry,
+        workoutName: namesById.get(entry.workoutId) ?? entry.workoutName,
+      }))
+
+      setEmpty(localizedHistory.length === 0)
+      setGroups(groupByWeek(localizedHistory))
+      setStats(calcStats(localizedHistory))
     })
   }, []))
 

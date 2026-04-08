@@ -19,6 +19,8 @@ import { Platform } from 'react-native'
 // ─────────────────────────────────────────────────────────────────────────────
 
 const WEB_CLIENT_ID = '703339875432-2cj2ekf03t8u77fknmvni8odqbf77juq.apps.googleusercontent.com'
+const ANDROID_UPLOAD_SHA1 = '8D:05:42:3D:DA:49:76:FD:36:66:62:E3:C5:B2:34:BB:E9:F7:0B:23'
+const ANDROID_UPLOAD_SHA256 = 'CC:5F:5B:3E:EB:77:AF:61:CD:44:2E:4D:45:45:8A:71:49:01:DD:93:BF:93:5C:94:AE:F3:F8:4E:F0:11:25:D6'
 
 GoogleSignin.configure({
   webClientId:   WEB_CLIENT_ID,
@@ -45,7 +47,7 @@ export function getGoogleSignInErrorMessage(error: any): string {
   }
 
   if (code === '10' || code === 'DEVELOPER_ERROR') {
-    return 'Android Google sign-in is misconfigured. The Firebase Android app is missing the OAuth client setup Google Sign-In needs. Add the Android app SHA-1 and SHA-256 fingerprints in Firebase, re-download google-services.json, and rebuild the app.'
+    return `Android Google sign-in is misconfigured. Add this Android signing cert to Firebase for com.differapps.intervaltimer, then re-download google-services.json and rebuild. SHA-1: ${ANDROID_UPLOAD_SHA1} SHA-256: ${ANDROID_UPLOAD_SHA256}`
   }
 
   if (rawMessage.includes('no ID token')) {

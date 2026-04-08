@@ -29,6 +29,21 @@ workflows:
         script: |
           python3 -c "f='node_modules/@react-native-firebase/firestore/ios/RNFBFirestore/RNFBFirestoreCollectionModule.m';txt=open(f).read();old='      [RNFBFirestoreCommon\\n          promiseRejectFirestoreException:reject\\n                                    error:[NSException exceptionWithName:\\n                                                           @\"RNFB Firestore: Invalid Aggregate Type\"\\n                                                                  reason:reason\\n                                                                userInfo:nil]];';new='      NSError *invalidAggregateError = [NSError\\n          errorWithDomain:@\"RNFB Firestore\"\\n                       code:0\\n                   userInfo:@{NSLocalizedDescriptionKey : reason}];\\n      [RNFBFirestoreCommon promiseRejectFirestoreException:reject error:invalidAggregateError];';txt=txt.replace(old,new,1);open(f,'w').write(txt)"
 
+      - name: Set unique iOS build number
+        script: |
+          python3 - <<'PY'
+          import json
+          import time
+          from pathlib import Path
+
+          path = Path("app.json")
+          data = json.loads(path.read_text())
+          build_number = time.strftime("%Y%m%d%H%M", time.gmtime())
+          data["expo"]["ios"]["buildNumber"] = build_number
+          path.write_text(json.dumps(data, indent=2) + "\n")
+          print(f"Using iOS buildNumber={build_number}")
+          PY
+
       - name: Expo prebuild
         script: npx expo prebuild --platform ios --no-install
 

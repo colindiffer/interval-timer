@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage'
 import { AppSettings, HistoryEntry, Workout } from '../types'
-import { PRESETS } from './presets'
+import { getPresetWorkouts } from './presets'
 import { DEFAULT_PHASE_COLORS } from '../theme'
 
 const KEYS = {
@@ -26,7 +26,7 @@ const LEGACY_DEFAULT_PHASE_COLORS = {
 export async function getWorkouts(): Promise<Workout[]> {
   const raw = await AsyncStorage.getItem(KEYS.workouts)
   const saved: Workout[] = raw ? JSON.parse(raw) : []
-  return [...PRESETS, ...saved]
+  return [...getPresetWorkouts(), ...saved]
 }
 
 export async function getUserWorkouts(): Promise<Workout[]> {

@@ -38,6 +38,14 @@
           }
         },
         {
+          "client_id": "703339875432-tfllra0g7jffk4d3u4hj1101d5eua0ko.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.differapps.intervaltimer",
+            "certificate_hash": "8d05423dda4976fd366662e3c5b234bbe9f70b23"
+          }
+        },
+        {
           "client_id": "703339875432-2cj2ekf03t8u77fknmvni8odqbf77juq.apps.googleusercontent.com",
           "client_type": 3
         }

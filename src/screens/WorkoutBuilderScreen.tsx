@@ -215,7 +215,7 @@ export default function WorkoutBuilderScreen({ route, navigation }: Props) {
       }
 
       const userCount = all.filter(item => !item.isPreset).length
-      setForm({ ...DEFAULT, name: `Workout ${userCount + 1}` })
+      setForm({ ...DEFAULT, name: t('builder.defaultWorkoutName', { count: userCount + 1 }) })
       setAdvancedEnabled(false)
     }
 
