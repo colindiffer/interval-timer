@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "9",
+      "buildNumber": "10",
       "bundleIdentifier": "com.differapps.intervaltimer",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -26,7 +26,7 @@
       }
     },
     "android": {
-      "versionCode": 9,
+      "versionCode": 10,
       "package": "com.differapps.intervaltimer",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
