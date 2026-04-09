@@ -538,7 +538,12 @@ export default function SettingsScreen() {
               <Text style={styles.rowLabel}>{t('settings.removeAds')}</Text>
               <Text style={styles.rowDescription}>{t('settings.removeAdsDetails')}</Text>
             </View>
-            <Text style={styles.purchasePrice}>{removeAdsSummary}</Text>
+            <View>
+              <Text style={styles.purchasePrice}>{removeAdsSummary}</Text>
+              {!adFree && removeAdsProduct && (
+                <Text style={styles.taxNote}>{t('settings.priceIncludesTax')}</Text>
+              )}
+            </View>
           </View>
           <Divider />
           <View style={styles.purchaseActionRow}>
@@ -1382,6 +1387,13 @@ function createStyles(C: ReturnType<typeof useColors>) {
       fontWeight: FontWeight.bold,
       color: C.accent,
       textAlign: 'right',
+      maxWidth: '42%',
+    },
+    taxNote: {
+      fontSize: FontSize.xs,
+      color: C.textTertiary,
+      textAlign: 'right',
+      marginTop: 4,
       maxWidth: '42%',
     },
     purchaseActionRow: {
