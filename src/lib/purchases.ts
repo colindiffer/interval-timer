@@ -1,6 +1,6 @@
 import type { Purchase } from 'expo-iap'
 
-export const REMOVE_ADS_PRODUCT_ID = 'com.differapps.intervaltimer.remove_ads'
+export const REMOVE_ADS_PRODUCT_ID = 'ad_free'
 export const REMOVE_ADS_PRODUCT_IDS = [REMOVE_ADS_PRODUCT_ID]
 
 export function isRemoveAdsPurchase(purchase: Purchase): boolean {
