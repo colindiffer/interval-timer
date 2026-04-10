@@ -14,9 +14,9 @@ export default function LogoMark({ size = 64, showBackground = true }: Props) {
       ) : null}
 
       {/* Ring track */}
-      <Circle cx="50" cy="50" r="35" stroke="#0D47A1" strokeWidth="6" fill="none" />
+      <Circle cx="50" cy="50" r="35" stroke="#C7D3E0" strokeWidth="6" fill="none" />
 
-      {/* Timer arc: 300° clockwise from top, ends at ~10 o'clock */}
+      {/* Timer arc: visible incomplete sweep so the end dot still reads as a hand */}
       <Path
         d="M 50 15 A 35 35 0 1 1 19.7 32.5"
         stroke="#FF6D00"

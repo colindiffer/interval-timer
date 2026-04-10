@@ -21,11 +21,11 @@ export default function Logo({ size = 36, boltColor = '#FFFFFF' }: Props) {
       {/* Filled face */}
       <Circle cx="50" cy="52" r="32" fill="#FF6D00" />
       {/* Ring track */}
-      <Circle cx="50" cy="52" r="37" stroke="#0D47A1" strokeWidth="8" />
+      <Circle cx="50" cy="52" r="37" stroke="#D7E4F7" strokeWidth="8" />
       {/* Timer arc */}
       <Path
         d="M 50 15 A 37 37 0 1 1 20.3 29.9"
-        stroke="#0D47A1"
+        stroke="#FF6D00"
         strokeWidth="8"
         strokeLinecap="round"
       />

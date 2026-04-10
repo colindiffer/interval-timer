@@ -254,12 +254,13 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       appStateRef.current = nextState
 
       const engineState = timerEngine.getState()
+      const isLeavingForeground = prevState === 'active' && nextState !== 'active'
+      const isReturningToForeground = prevState !== 'active' && nextState === 'active'
 
       // Background the session into the foreground service so the workout
       // continues from the notification shade instead of PiP.
       if (
-        prevState === 'active'
-        && nextState === 'background'
+        isLeavingForeground
         && workoutRef.current
         && engineState.status === 'running'
       ) {
@@ -314,7 +315,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
         }
       }
 
-      if (prevState === 'background' && nextState === 'active') {
+      if (isReturningToForeground) {
         if (Platform.OS === 'android' && (isBackgroundTimerRunning() || isBackgroundControlled)) {
           const bgState = await readBackgroundState()
           if (bgState) {

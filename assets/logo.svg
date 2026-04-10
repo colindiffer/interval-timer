@@ -9,11 +9,11 @@
   <circle cx="50" cy="52" r="32" fill="#FF6D00"/>
 
   <!-- Ring track -->
-  <circle cx="50" cy="52" r="37" stroke="#0D47A1" stroke-width="8" fill="none"/>
+  <circle cx="50" cy="52" r="37" stroke="#D7E4F7" stroke-width="8" fill="none"/>
 
   <!-- Timer arc -->
   <path d="M 50 15 A 37 37 0 1 1 20.3 29.9"
-        stroke="#0D47A1" stroke-width="8" fill="none"
+        stroke="#FF6D00" stroke-width="8" fill="none"
         stroke-linecap="round"/>
 
   <!-- Arc end dot (simulates a timer hand) -->
