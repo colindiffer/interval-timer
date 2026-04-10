@@ -133,5 +133,136 @@ workflows:
     publishing:
       app_store_connect:
         auth: integration
-        submit_to_testflight: true
-        expire_build_submitted_for_review: true
+        submit_to_testflight: false
+  ios-screenshots:
+    name: iOS Screenshots
+    max_build_duration: 60
+    instance_type: mac_mini_m2
+    integrations:
+      app_store_connect: Codemagic Podcast
+    environment:
+      groups:
+        - noad
+      ios_signing:
+        provisioning_profiles:
+          - profile: interval_timer_app_store
+            environment_variable: CM_PROFILE_MAIN
+          - profile: intervaltimerwidget2
+            environment_variable: CM_PROFILE_WIDGET
+        certificates:
+          - certificate: timerp12
+      node: latest
+      xcode: 16.2
+      cocoapods: default
+    scripts:
+      - name: Install npm dependencies
+        script: npm ci --ignore-scripts
+
+      - name: Patch RN Firebase iOS podspec
+        script: |
+          python3 -c "f='node_modules/@react-native-firebase/app/RNFBApp.podspec';txt=open(f).read();old='  s.source_files        = \"ios/**/*.{h,m}\"\\n';new='  s.source_files        = \"ios/**/*.{h,m}\"\\n\\n  # App must define modules for static framework integration of other packages to work.\\n  # Also allow React Core headers while RNFBApp is built as a framework module.\\n  s.pod_target_xcconfig = {\\n    \"DEFINES_MODULE\" => \"YES\",\\n    \"CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES\" => \"YES\",\\n  }\\n';txt=txt.replace(old,new,1);open(f,'w').write(txt)"
+
+      - name: Patch RN Firebase Firestore iOS source
+        script: |
+          python3 -c "f='node_modules/@react-native-firebase/firestore/ios/RNFBFirestore/RNFBFirestoreCollectionModule.m';txt=open(f).read();old='      [RNFBFirestoreCommon\\n          promiseRejectFirestoreException:reject\\n                                    error:[NSException exceptionWithName:\\n                                                           @\"RNFB Firestore: Invalid Aggregate Type\"\\n                                                                  reason:reason\\n                                                                userInfo:nil]];';new='      NSError *invalidAggregateError = [NSError\\n          errorWithDomain:@\"RNFB Firestore\"\\n                       code:0\\n                   userInfo:@{NSLocalizedDescriptionKey : reason}];\\n      [RNFBFirestoreCommon promiseRejectFirestoreException:reject error:invalidAggregateError];';txt=txt.replace(old,new,1);open(f,'w').write(txt)"
+
+      - name: Set unique iOS build number
+        script: |
+          python3 - <<'PY'
+          import json
+          import time
+          from pathlib import Path
+
+          path = Path("app.json")
+          data = json.loads(path.read_text())
+          build_number = time.strftime("%Y%m%d%H%M", time.gmtime())
+          data["expo"]["ios"]["buildNumber"] = build_number
+          path.write_text(json.dumps(data, indent=2) + "\n")
+          print(f"Using iOS buildNumber={build_number}")
+          PY
+
+      - name: Expo prebuild
+        script: npx expo prebuild --platform ios --no-install
+
+      - name: Patch Podfile for Firebase static frameworks and Xcode 16 fixes
+        script: |
+          sed -i '' '1s/^/$RNFirebaseAsStaticFramework = true\n/' ios/Podfile
+          python3 -c "f='ios/Podfile';txt=open(f).read();patch='\n  installer.pods_project.targets.each do |target|\n    target.build_configurations.each do |config|\n      config.build_settings[\"CLANG_ENABLE_EXPLICIT_MODULES\"]=\"NO\"\n      config.build_settings[\"CLANG_ALLOW_NON_MODULAR_INCLUDES_IN_FRAMEWORK_MODULES\"]=\"YES\"\n      if target.name.start_with?(\"RNFB\")\n        config.build_settings[\"CLANG_ENABLE_MODULES\"]=\"NO\"\n      end\n    end\n  end';txt=txt.replace('post_install do |installer|','post_install do |installer|'+patch,1);open(f,'w').write(txt)"
+
+      - name: Install CocoaPods
+        script: cd ios && pod install
+
+      - name: Apply code signing profiles
+        script: xcode-project use-profiles
+
+      - name: Force target provisioning profiles
+        script: |
+          PROJECT=$(find ios -name "*.xcodeproj" -maxdepth 1 | head -1)
+          MAIN_TARGET=$(basename "$PROJECT" .xcodeproj)
+          MAIN_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$CM_PROFILE_MAIN")")
+          WIDGET_UUID=$(/usr/libexec/PlistBuddy -c 'Print UUID' /dev/stdin <<< "$(security cms -D -i "$CM_PROFILE_WIDGET")")
+          export PROJECT MAIN_TARGET MAIN_UUID WIDGET_UUID
+          ruby <<'RUBY'
+          require 'xcodeproj'
+
+          project = Xcodeproj::Project.open(ENV.fetch('PROJECT'))
+          target_settings = {
+            ENV.fetch('MAIN_TARGET') => {
+              'PRODUCT_BUNDLE_IDENTIFIER' => 'com.differapps.intervaltimer',
+              'PROVISIONING_PROFILE' => ENV.fetch('MAIN_UUID'),
+            },
+            'IntervalTimerWidget' => {
+              'PRODUCT_BUNDLE_IDENTIFIER' => 'com.differapps.intervaltimer.IntervalTimerWidget',
+              'PROVISIONING_PROFILE' => ENV.fetch('WIDGET_UUID'),
+            },
+          }
+
+          project.targets.each do |target|
+            settings = target_settings[target.name]
+            next unless settings
+
+            target.build_configurations.each do |config|
+              config.build_settings['CODE_SIGN_STYLE'] = 'Manual'
+              config.build_settings['DEVELOPMENT_TEAM'] = '25X2WSWQG6'
+              settings.each do |key, value|
+                config.build_settings[key] = value
+              end
+              config.build_settings.delete('PROVISIONING_PROFILE_SPECIFIER')
+            end
+          end
+
+          project.save
+          RUBY
+
+      - name: Build IPA
+        script: |
+          WORKSPACE=$(find ios -name "*.xcworkspace" -maxdepth 1 | head -1)
+          SCHEME=$(basename "$WORKSPACE" .xcworkspace)
+          echo "Building workspace: $WORKSPACE scheme: $SCHEME"
+          if ! xcode-project build-ipa \
+            --workspace "$WORKSPACE" \
+            --scheme "$SCHEME" \
+            --clean \
+            --archive-xcargs "CLANG_ENABLE_EXPLICIT_MODULES=NO" \
+            --disable-xcpretty; then
+            echo "Build failed. Extracting xcodebuild diagnostics..."
+            LOG_FILE=$(find /tmp/xcodebuild_logs -name "*.log" | sort | tail -1)
+            echo "Using log: $LOG_FILE"
+            if [ -n "$LOG_FILE" ] && [ -f "$LOG_FILE" ]; then
+              mkdir -p build/ios/diagnostics
+              cp "$LOG_FILE" build/ios/diagnostics/xcodebuild-full.log
+              {
+                echo "Using log: $LOG_FILE"
+                echo
+                grep -E -n -C 5 "error:|ARCHIVE FAILED|The following build commands failed|Unable to resolve module|CodeSign|Provisioning Profile|No profiles for|requires a provisioning profile" "$LOG_FILE" || true
+              } | tee build/ios/diagnostics/xcode-errors.txt
+            fi
+            exit 1
+          fi
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - build/ios/diagnostics/*.txt
+      - build/ios/diagnostics/*.log
+      - /tmp/xcodebuild_logs/*.log
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.dSYM
