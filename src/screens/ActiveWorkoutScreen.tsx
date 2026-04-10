@@ -5,7 +5,7 @@ import {
 import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import { NativeStackScreenProps } from '@react-navigation/native-stack'
-import Svg, { Path, Circle } from 'react-native-svg'
+import Svg, { Path } from 'react-native-svg'
 
 import { RootStackParamList } from '../navigation/types'
 import { AppSettings, TimerState, Workout } from '../types'
@@ -661,27 +661,28 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       <SafeAreaView style={[styles.root, { backgroundColor: C.bg }]} edges={['top', 'bottom']}>
         <StatusBar barStyle={theme === 'dark' ? 'light-content' : 'dark-content'} />
         <View style={styles.doneContainer}>
-          <View style={styles.doneCheck}>
-            <Svg width={72} height={72} viewBox="0 0 72 72" fill="none">
-              <Circle cx="36" cy="36" r="34" stroke={settings.phaseColors.complete} strokeWidth="3" />
-              <Path
-                d="M22 36 L32 46 L50 28"
-                stroke={settings.phaseColors.complete}
-                strokeWidth="3.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </Svg>
-          </View>
-          <Text style={styles.doneName}>{timerState.workoutName}</Text>
-          {timerState.totalReps > 1 ? (
-            <Text style={styles.doneStats}>
-              {t('workout.repsComplete', { count: timerState.totalReps })}
+          <View style={[styles.doneCircle, { backgroundColor: settings.phaseColors.complete }]}>
+            <View style={styles.doneCheck}>
+              <Svg width={72} height={72} viewBox="0 0 72 72" fill="none">
+                <Path
+                  d="M22 36 L32 46 L50 28"
+                  stroke="#FFFFFF"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </Svg>
+            </View>
+            <Text style={styles.doneName}>{timerState.workoutName}</Text>
+            {timerState.totalReps > 1 ? (
+              <Text style={styles.doneStats}>
+                {t('workout.repsComplete', { count: timerState.totalReps })}
+              </Text>
+            ) : null}
+            <Text style={styles.doneTime}>
+              {formatTotal(timerState.elapsedTotal)}
             </Text>
-          ) : null}
-          <Text style={styles.doneTime}>
-            {formatTotal(timerState.elapsedTotal)}
-          </Text>
+          </View>
           <TouchableOpacity style={styles.doneBtn} onPress={handleStartAgain}>
             <Text style={styles.doneBtnText}>{t('workout.startAgain')}</Text>
           </TouchableOpacity>
@@ -879,28 +880,40 @@ function createStyles(C: ReturnType<typeof useColors>) {
       gap:             Spacing.md,
       paddingHorizontal: Spacing.xl,
     },
+    doneCircle: {
+      width:           '88%',
+      maxWidth:        360,
+      aspectRatio:     1,
+      borderRadius:    999,
+      alignItems:      'center',
+      justifyContent:  'center',
+      gap:             Spacing.sm,
+      paddingHorizontal: Spacing.xl,
+      paddingVertical: Spacing.xxl,
+    },
     doneCheck: {
       marginBottom: Spacing.md,
     },
     doneName: {
       fontSize:   FontSize.xxl,
       fontWeight: FontWeight.bold,
-      color:      C.textPrimary,
+      color:      '#FFFFFF',
       textAlign:  'center',
     },
     doneStats: {
       fontSize: FontSize.lg,
-      color:    C.textSecondary,
+      color:    'rgba(255,255,255,0.84)',
+      textAlign: 'center',
     },
     doneTime: {
       fontSize:   FontSize.xxl,
       fontWeight: FontWeight.heavy,
-      color:      C.textPrimary,
+      color:      '#FFFFFF',
       fontVariant: ['tabular-nums'],
     },
     doneBtn: {
       marginTop:         Spacing.xl,
-      backgroundColor:   C.accent,
+      backgroundColor:   '#FFFFFF',
       borderRadius:      100,
       paddingVertical:   Spacing.md,
       paddingHorizontal: Spacing.xxl,
@@ -908,7 +921,7 @@ function createStyles(C: ReturnType<typeof useColors>) {
     doneBtnText: {
       fontSize:   FontSize.lg,
       fontWeight: FontWeight.semibold,
-      color:      C.accentText,
+      color:      C.accent,
     },
     doneSecondaryBtn: {
       paddingVertical: Spacing.sm,

@@ -2,7 +2,7 @@
   "expo": {
     "name": "Flash Interval Timer Workout",
     "slug": "IntervalTimer",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -14,7 +14,7 @@
     },
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "15",
+      "buildNumber": "16",
       "bundleIdentifier": "com.differapps.intervaltimer",
       "googleServicesFile": "./GoogleService-Info.plist",
       "infoPlist": {
@@ -26,7 +26,7 @@
       }
     },
     "android": {
-      "versionCode": 16,
+      "versionCode": 18,
       "package": "com.differapps.intervaltimer",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {

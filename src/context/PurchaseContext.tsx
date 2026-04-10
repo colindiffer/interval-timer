@@ -75,7 +75,10 @@ function getPurchaseMessage(error: { code?: ErrorCode | string; message?: string
 }
 
 export function PurchaseProvider({ children }: { children: React.ReactNode }) {
-  const [adFree, setAdFree] = useState(false)
+  const forceAdFreeForIosScreenshots = Platform.OS === 'ios'
+    && process.env.EXPO_PUBLIC_IOS_SCREENSHOT_AD_FREE === '1'
+
+  const [adFree, setAdFree] = useState(forceAdFreeForIosScreenshots)
   const [hydrated, setHydrated] = useState(false)
   const [syncingStore, setSyncingStore] = useState(false)
   const [purchaseBusy, setPurchaseBusy] = useState(false)
@@ -140,7 +143,7 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   const refreshEntitlements = useCallback(async () => {
-    if (Platform.OS === 'web' || !connected) return
+    if (forceAdFreeForIosScreenshots || Platform.OS === 'web' || !connected) return
 
     setSyncingStore(true)
     try {
@@ -170,9 +173,15 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setSyncingStore(false)
     }
-  }, [connected, saveEntitlements, statusTone])
+  }, [connected, forceAdFreeForIosScreenshots, saveEntitlements, statusTone])
 
   useEffect(() => {
+    if (forceAdFreeForIosScreenshots) {
+      setAdFree(true)
+      setHydrated(true)
+      return
+    }
+
     AsyncStorage.getItem(ENTITLEMENTS_KEY)
       .then(raw => {
         if (!raw) return
@@ -180,7 +189,7 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
         setAdFree(Boolean(parsed.adFree))
       })
       .finally(() => setHydrated(true))
-  }, [])
+  }, [forceAdFreeForIosScreenshots])
 
   useEffect(() => {
     if (!hydrated || Platform.OS === 'web' || adFree) return
@@ -194,6 +203,11 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
 
   const buyRemoveAds = useCallback(async () => {
     if (Platform.OS === 'web') return
+    if (forceAdFreeForIosScreenshots) {
+      setStatusMessage(t('settings.removeAdsOwned'))
+      setStatusTone('success')
+      return
+    }
     if (adFree) {
       setStatusMessage(t('settings.removeAdsOwned'))
       setStatusTone('success')
@@ -221,10 +235,15 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
       setStatusTone(purchaseError.tone)
       setPurchaseBusy(false)
     }
-  }, [adFree])
+  }, [adFree, forceAdFreeForIosScreenshots])
 
   const restorePurchases = useCallback(async () => {
     if (Platform.OS === 'web') return
+    if (forceAdFreeForIosScreenshots) {
+      setStatusMessage(t('settings.removeAdsOwned'))
+      setStatusTone('success')
+      return
+    }
 
     setRestoreBusy(true)
     setStatusMessage('')
@@ -249,7 +268,7 @@ export function PurchaseProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setRestoreBusy(false)
     }
-  }, [saveEntitlements])
+  }, [forceAdFreeForIosScreenshots, saveEntitlements])
 
   const value = useMemo<PurchaseContextValue>(() => ({
     adFree,

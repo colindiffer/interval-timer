@@ -1,11 +1,11 @@
 import { PhaseColorKey } from '../types'
 
 export const DEFAULT_PHASE_COLORS: Record<PhaseColorKey, string> = {
-  work:     '#0D47A1',  // deep blue
+  work:     '#FF6D00',  // app orange
   rest:     '#00E676',  // neon green
-  warmup:   '#FF6D00',  // bright orange
+  warmup:   '#8B5CF6',  // purple
   cooldown: '#1565C0',  // pace blue
-  complete: '#263238',  // dark charcoal
+  complete: '#FF6D00',  // app orange
 }
 
 export const PhaseColors = DEFAULT_PHASE_COLORS

@@ -13,13 +13,22 @@ const KEYS = {
 
 const MAX_HISTORY = 30
 const MAX_FAVOURITES = 3
-const LEGACY_DEFAULT_PHASE_COLORS = {
-  work: '#3B82F6',
-  rest: '#1D4ED8',
-  warmup: '#F59E0B',
-  cooldown: '#6366F1',
-  complete: '#1C1C1E',
-} as const
+const LEGACY_DEFAULT_PHASE_COLOR_SETS = [
+  {
+    work: '#3B82F6',
+    rest: '#1D4ED8',
+    warmup: '#F59E0B',
+    cooldown: '#6366F1',
+    complete: '#1C1C1E',
+  },
+  {
+    work: '#0D47A1',
+    rest: '#00E676',
+    warmup: '#FF6D00',
+    cooldown: '#1565C0',
+    complete: '#263238',
+  },
+] as const
 
 // ── Workouts ──────────────────────────────────────────────────────────────────
 
@@ -143,8 +152,10 @@ export async function getSettings(): Promise<AppSettings> {
   const locale: AppSettings['locale'] = validLocales.includes(parsed.locale)
     ? parsed.locale
     : DEFAULT_SETTINGS.locale
-  const usesLegacyPhaseDefaults = Object.entries(LEGACY_DEFAULT_PHASE_COLORS).every(
-    ([key, value]) => parsed.phaseColors?.[key] === value,
+  const usesLegacyPhaseDefaults = LEGACY_DEFAULT_PHASE_COLOR_SETS.some(legacyColors =>
+    Object.entries(legacyColors).every(
+      ([key, value]) => parsed.phaseColors?.[key] === value,
+    )
   )
   const phaseColors = parsed.phaseColors && !usesLegacyPhaseDefaults
     ? {
