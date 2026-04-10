@@ -26,7 +26,7 @@
       }
     },
     "android": {
-      "versionCode": 15,
+      "versionCode": 16,
       "package": "com.differapps.intervaltimer",
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
