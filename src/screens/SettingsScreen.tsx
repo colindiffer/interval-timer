@@ -29,7 +29,7 @@ import { GoogleIcon } from '../components/AuthIcons'
 import { pushToCloud, pullFromCloud } from '../data/syncService'
 import { t, useI18n } from '../i18n'
 
-const APP_VERSION = '1.0.4'
+const APP_VERSION = '1.0.6'
 const FINAL_COUNT_OPTIONS = [0, 3, 5]
 const SOUND_THEMES: SoundThemeId[] = [
   'beep',

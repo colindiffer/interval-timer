@@ -104,6 +104,14 @@ function mergeBgState(previous: TimerState | null, bgState: BgTimerState): Timer
   }
 }
 
+interface IosBackgroundSnapshot {
+  sequence: BgPhaseStep[]
+  stepIndex: number
+  countdown: number
+  elapsedTotal: number
+  capturedAt: number
+}
+
 function phaseLabel(phase: string): string {
   if (phase === 'work') return t('common.work')
   if (phase === 'rest') return t('common.rest')
@@ -118,6 +126,65 @@ function nextPhaseLabel(phase: string): string {
   if (phase === 'warmup') return t('workout.nextWarmup')
   if (phase === 'cooldown') return t('workout.nextCooldown')
   return phase
+}
+
+function findCurrentStepIndex(sequence: BgPhaseStep[], currentPhase: TimerState['currentPhase'], currentRep: number): number {
+  return Math.max(
+    0,
+    sequence.findIndex(step => step.type === currentPhase && step.rep === currentRep)
+  )
+}
+
+function advanceIosBackgroundSnapshot(snapshot: IosBackgroundSnapshot): {
+  stepIndex: number
+  countdown: number
+  status: TimerState['status']
+  elapsedTotal: number
+} {
+  const elapsed = Math.max(0, Math.floor((Date.now() - snapshot.capturedAt) / 1000))
+
+  if (snapshot.sequence.length === 0) {
+    return {
+      stepIndex: 0,
+      countdown: 0,
+      status: 'complete',
+      elapsedTotal: snapshot.elapsedTotal,
+    }
+  }
+
+  let remaining = elapsed
+  let stepIndex = snapshot.stepIndex
+  let countdown = snapshot.countdown
+  let status: TimerState['status'] = 'running'
+
+  while (remaining > 0) {
+    if (remaining < countdown) {
+      countdown -= remaining
+      remaining = 0
+      break
+    }
+
+    remaining -= countdown
+    stepIndex += 1
+
+    if (stepIndex >= snapshot.sequence.length) {
+      return {
+        stepIndex: snapshot.sequence.length - 1,
+        countdown: 0,
+        status: 'complete',
+        elapsedTotal: snapshot.elapsedTotal + elapsed,
+      }
+    }
+
+    countdown = snapshot.sequence[stepIndex].duration
+  }
+
+  return {
+    stepIndex,
+    countdown,
+    status,
+    elapsedTotal: snapshot.elapsedTotal + elapsed,
+  }
 }
 
 export default function ActiveWorkoutScreen({ route, navigation }: Props) {
@@ -141,6 +208,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
   const appStateRef = useRef<AppStateStatus>(AppState.currentState)
   const liveActivityIdRef = useRef<string | null>(null)
   const liveActivityAlertShownRef = useRef(false)
+  const iosBackgroundSnapshotRef = useRef<IosBackgroundSnapshot | null>(null)
 
   useEffect(() => {
     settingsRef.current = settings
@@ -191,55 +259,63 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
       // continues from the notification shade instead of PiP.
       if (
         prevState === 'active'
-        && nextState !== 'active'
+        && nextState === 'background'
         && workoutRef.current
         && engineState.status === 'running'
       ) {
         try {
-          const notificationsAllowed = await ensureNotificationPermission()
-          if (!notificationsAllowed) {
-            console.warn('Background timer skipped because notification permission was denied.')
-            return
-          }
-
           const workout = workoutRef.current
-          const currentSettings = settingsRef.current
           const seq = buildBgSequence(workout)
-          const currentStep = Math.max(
-            0,
-            seq.findIndex(
-              s => s.type === engineState.currentPhase && s.rep === engineState.currentRep
-            )
-          )
+          const currentStep = findCurrentStepIndex(seq, engineState.currentPhase, engineState.currentRep)
 
-          await startBackgroundTimer({
-            sequence:    seq,
-            stepIndex:   currentStep,
-            countdown:   engineState.countdown,
-            status:      'running',
-            totalReps:   engineState.totalReps,
-            currentRep:  engineState.currentRep,
-            workoutName: engineState.workoutName,
-            elapsedTotal: engineState.elapsedTotal,
-            audio: {
-              soundCues: currentSettings.soundCues,
-              voiceCues: workout.voiceCues !== undefined ? workout.voiceCues : currentSettings.voiceCues,
-              countdownBeeps: currentSettings.countdownBeeps,
-              finalCountdown: currentSettings.finalCountdown,
-              soundTheme: workout.soundTheme ?? currentSettings.soundTheme,
-            },
-            phaseColors: currentSettings.phaseColors,
-          })
+          if (Platform.OS === 'android') {
+            const notificationsAllowed = await ensureNotificationPermission()
+            if (!notificationsAllowed) {
+              console.warn('Background timer skipped because notification permission was denied.')
+              return
+            }
 
-          setIsBackgroundControlled(true)
-          timerEngine.pause()
+            const currentSettings = settingsRef.current
+
+            await startBackgroundTimer({
+              sequence:    seq,
+              stepIndex:   currentStep,
+              countdown:   engineState.countdown,
+              status:      'running',
+              totalReps:   engineState.totalReps,
+              currentRep:  engineState.currentRep,
+              workoutName: engineState.workoutName,
+              elapsedTotal: engineState.elapsedTotal,
+              audio: {
+                soundCues: currentSettings.soundCues,
+                voiceCues: workout.voiceCues !== undefined ? workout.voiceCues : currentSettings.voiceCues,
+                countdownBeeps: currentSettings.countdownBeeps,
+                finalCountdown: currentSettings.finalCountdown,
+                soundTheme: workout.soundTheme ?? currentSettings.soundTheme,
+              },
+              phaseColors: currentSettings.phaseColors,
+            })
+
+            setIsBackgroundControlled(true)
+            timerEngine.pause()
+          } else {
+            // Avoid the iOS background audio/service path and reconcile by wall clock on resume.
+            iosBackgroundSnapshotRef.current = {
+              sequence: seq,
+              stepIndex: currentStep,
+              countdown: engineState.countdown,
+              elapsedTotal: engineState.elapsedTotal,
+              capturedAt: Date.now(),
+            }
+            timerEngine.pause()
+          }
         } catch (error) {
           console.error('Failed to start background timer service', error)
         }
       }
 
-      if (prevState !== 'active' && nextState === 'active') {
-        if (isBackgroundTimerRunning() || isBackgroundControlled) {
+      if (prevState === 'background' && nextState === 'active') {
+        if (Platform.OS === 'android' && (isBackgroundTimerRunning() || isBackgroundControlled)) {
           const bgState = await readBackgroundState()
           if (bgState) {
             timerEngine.jumpToPosition(
@@ -251,6 +327,15 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
           }
           await stopBackgroundTimer()
           setIsBackgroundControlled(false)
+        } else if (Platform.OS === 'ios' && iosBackgroundSnapshotRef.current) {
+          const restored = advanceIosBackgroundSnapshot(iosBackgroundSnapshotRef.current)
+          iosBackgroundSnapshotRef.current = null
+          timerEngine.jumpToPosition(
+            restored.stepIndex,
+            restored.countdown,
+            restored.status,
+            restored.elapsedTotal
+          )
         }
       }
     }
@@ -436,6 +521,7 @@ export default function ActiveWorkoutScreen({ route, navigation }: Props) {
     return () => {
       void deactivateKeepAwake()
       stopBackgroundTimer()
+      iosBackgroundSnapshotRef.current = null
 
       if (liveActivityIdRef.current) {
         endLiveActivity(liveActivityIdRef.current).catch(() => {})
